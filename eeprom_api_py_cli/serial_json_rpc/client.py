@@ -66,7 +66,7 @@ class SerialJsonRpcClient:
         # flush the data to the board
         self.serial.flush()
 
-        response, resp_wait_sec = self._read_response(self.init_timeout)
+        response, resp_wait_sec = self._read_response(self.RESPONSE_READ_TIMEOUT_SEC)
         if response is None:
             raise SerialJsonRpcClientError(
                 f"failed to read response for {method}, resp_wait_sec = {resp_wait_sec}")

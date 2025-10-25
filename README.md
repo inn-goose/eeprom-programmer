@@ -24,34 +24,78 @@ void init_read(String &eeprom_type);
 byte[] read_page(int page_size_bytes, int page_no);
 ```
 
+### Manual API Testing
+
+Serial Monitor / `115200` baud
+
+#### Read
+
+```
+# init_read(eeprom_type)
+{"jsonrpc":"2.0","id":0,"method": "init_read", "params": ["AT28C64"]}
+
+# read_page(page_size, page_no)
+{"jsonrpc":"2.0","id":0,"method": "read_page", "params": [4, 0]}
+```
+
+#### Write
+
+```
+# init_write(eeprom_type)
+{"jsonrpc":"2.0","id":0,"method": "init_write", "params": ["AT28C64"]}
+
+# write_page(page_size, page_no, write_pattern)
+{"jsonrpc":"2.0","id":0,"method": "write_page", "params": [4, 0, [255, 255, 255, 255]]}
+```
+
 
 ## EEPROM API python CLI
 
 Uses the [Serial JSON RPC](https://github.com/inn-goose/serial-json-rpc-arduino) interface.
 
-### init
+### init CLI
 
 ```commandline
 pip3 install virtualenv
 
-cd eeprom_api_py_cli/
-
-PATH=${PATH}:~/Library/Python/3.9/bin/ ./sh/init.sh
+PATH=${PATH}:~/Library/Python/3.9/bin/ ./env/init.sh
 
 source venv/bin/activate
 
 deactivate
 ```
 
-### usage
+### Usage
 
 ```commandline
 python -m serial.tools.list_ports
 ...
 /dev/cu.usbmodem2101
+```
 
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r ./dump_eeprom_api.bin
-xxd dump_eeprom_api.bin > dump_eeprom_api.hex
+#### read
+
+```commandline
+mkdir ./tmp
+
+# read the data
+PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api.bin
+
+# convert to HEX
+xxd tmp/dump_eeprom_api.bin > tmp/dump_eeprom_api.hex
+```
+
+#### erase
+
+```commandline
+# erase with FF pattern
+PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase ff
+```
+
+#### write
+
+```commandline
+🚧 WIP 🚧
 ```
 
 
@@ -60,10 +104,45 @@ xxd dump_eeprom_api.bin > dump_eeprom_api.hex
 ```commandline
 brew install minipro
 
-# read
-minipro -p AT28C64 -u -r ./dump_programmer.bin
-xxd dump_programmer.bin > dump_programmer.hex
+mkdir ./tmp
+
+# get a "real" EEPROM dump
+curl -LJ --output tmp/zenith_zt1_eeprom.bin "https://github.com/misterblack1/zenith_zt1/raw/refs/heads/main/444-187%20U114%20ROM%202732.bin"
+
+# write the "real" dump to the chip
+minipro -p AT28C64 -s -u -w tmp/zenith_zt1_eeprom.bin
+
+# read the data
+minipro -p AT28C64 -u -r tmp/dump_programmer.bin
+
+# convert to HEX
+xxd tmp/dump_programmer.bin > tmp/dump_programmer.hex
 
 # compare
-vimdiff dump_eeprom_api.hex dump_programmer.hex
+vimdiff tmp/dump_eeprom_api.hex tmp/dump_programmer.hex
+```
+
+
+
+## Tests
+
+### Read Noise
+
+```commandline
+# read w/o reset
+PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api.bin --attempts 3
+
+# read w/ reset
+for i in `seq 1 3`; do PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api_$i.bin; done
+
+# convert to HEX
+for i in `seq 1 3`; do xxd tmp/dump_eeprom_api_$i.bin > tmp/dump_eeprom_api_$i.hex; done
+
+# compare
+
+vimdiff tmp/dump_eeprom_api_[1,3].hex
+
+vimdiff tmp/dump_eeprom_api_*.hex
+
+vimdiff tmp/dump_eeprom_api_1.hex tmp/dump_programmer.hex
 ```

@@ -17,6 +17,9 @@ public:
   void send_result_bytes(int id, uint8_t* buffer, int buffer_size);
   void send_error(int id, int error_code, const char* error_message, const char* error_data);
 
+  // helpers
+  static void string_to_byte_array(const String&, int, uint8_t*);
+
 private:
   // default baudrate
   static const unsigned long _DEFAULT_BAUDRATE = 115200;
@@ -109,6 +112,15 @@ void SerialJsonRpcBoard::send_result_bytes(int id, uint8_t* buffer, int buffer_s
   response["result"] = result;
 
   _send_response(response);
+}
+
+static void SerialJsonRpcBoard::string_to_byte_array(const String& string, int array_size, uint8_t* byte_array) {
+  DynamicJsonDocument json_doc(string.length());
+  deserializeJson(json_doc, string);
+  JsonArray json_array = json_doc.as<JsonArray>();
+  for (int i = 0; i < array_size; i++) {
+    byte_array[i] = json_array[i].as<uint8_t>();
+  }
 }
 
 void SerialJsonRpcBoard::send_error(int id, int error_code, const char* error_message, const char* error_data) {
