@@ -116,7 +116,10 @@ private:
   static void _dataToBitsArray(uint8_t data, bool* bitsArray) {
     // MSB order
     for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      bitsArray[_EEPROM_28C64_DATA_BUS_SIZE - 1 - i] = bitRead(data, i);
+      // MSP order
+      // bitsArray[_EEPROM_28C64_DATA_BUS_SIZE - 1 - i] = bitRead(data, i);
+      // LSB order
+      bitsArray[i] = (data >> i) & 1;
     }
   }
 
