@@ -53,5 +53,6 @@ const uint8_t EEPROM_CHIP_ENABLE_PIN = 36;
 const uint8_t EEPROM_OUTPUT_ENABLE_PIN = 32;
 const uint8_t EEPROM_WRITE_ENABLE_PIN = 22;
 const uint8_t EEPROM_READY_BUSY_OUTPUT_PIN = 29;
+const uint8_t NON_CONNECTED_PINS[] = { 24 };
 
 #endif  // !__eeprom_wiring_h__

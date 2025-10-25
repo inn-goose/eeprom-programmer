@@ -18,7 +18,9 @@ static EepromApi eeprom_api(
   EEPROM_OUTPUT_ENABLE_PIN,
   EEPROM_WRITE_ENABLE_PIN,
   // status
-  EEPROM_READY_BUSY_OUTPUT_PIN);
+  EEPROM_READY_BUSY_OUTPUT_PIN,
+  // non-connected
+  NON_CONNECTED_PINS);
 
 
 // Serial JSON RPC Processor
@@ -49,7 +51,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
 
     uint8_t buffer[page_size_bytes];
     const int start = page_size_bytes * page_no;
-    for (int i = 0; i < page_size_bytes; i ++) {
+    for (int i = 0; i < page_size_bytes; i++) {
       buffer[i] = eeprom_api.readData(start + i);
     }
 
