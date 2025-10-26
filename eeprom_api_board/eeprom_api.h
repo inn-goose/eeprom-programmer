@@ -14,6 +14,16 @@
 
 namespace EepromApiLibrary {
 
+// Error Codes
+
+enum ErrorCode : int {
+  SUCCESS = 0,
+  INIT_ERROR,
+  READ_ERROR,
+  WRITE_ERROR
+};
+
+
 // EEPROM API
 
 class EepromApi {
@@ -32,19 +42,33 @@ public:
     // non-connected
     const uint8_t* nonConnectedPins);
 
-  void init();
+  // init
+  void init_api();
+  void init_chip(const String& chip_type);
 
-  void readInit();
-  uint8_t readData(const uint16_t address);
+  // read
+  void set_read_mode(const int read_page_size_bytes);
+  inline int get_read_page_size_bytes() {
+    return _read_page_size_bytes;
+  }
+  void read_page(const int page_no, uint8_t* bytes);
+  uint8_t read_byte(const uint16_t address);
 
-  void writeInit();
-  void writeData(const uint16_t address, const uint8_t data);
+  // write
+  void set_write_mode(const int write_page_size_bytes);
+  inline int get_write_page_size_bytes() {
+    return _write_page_size_bytes;
+  }
+  void write_page(const int page_no, const uint8_t* bytes);
+  void write_byte(const uint16_t address, const uint8_t data);
 
+  // performance
   int busyStateUsec() {
     return _busyStateUsec;
   }
 
-  static String addressBin(const uint16_t address) {
+  // helpers
+  static String address_to_binary_string(const uint16_t address) {
     bool bAddress[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
     _addressToBitsArray(address, bAddress);
     String result = "";
@@ -55,13 +79,13 @@ public:
     return result;
   }
 
-  static String addressHex(const uint16_t address) {
+  static String address_to_hex_string(const uint16_t address) {
     char buf[8];
     sprintf(buf, "%08x", address);
     return String(buf);
   }
 
-  static String dataHex(const uint8_t data) {
+  static String data_to_hex_string(const uint8_t data) {
     char buf[2];
     sprintf(buf, "%02x", data);
     return String(buf);
@@ -93,8 +117,13 @@ private:
   size_t _nonConnectedPinsSize;
 
   // inner state
-  bool _readState;
-  bool _writeState;
+  bool _chip_is_ready;
+  bool _read_mode;
+  int _read_page_size_bytes;
+  bool _write_mode;
+  int _write_page_size_bytes;
+
+  // performance
   int _busyStateUsec;
 
   // bit operations
@@ -163,8 +192,13 @@ EepromApi::EepromApi(
   }
 
   // inner state
-  _readState = false;
-  _writeState = false;
+  _chip_is_ready = false;
+  _read_mode = false;
+  _read_page_size_bytes = 0;
+  _write_mode = false;
+  _write_page_size_bytes = 0;
+
+  // performance
   _busyStateUsec = 0;
 }
 
@@ -181,7 +215,12 @@ void EepromApi::_changeDataPinsMode(const EepromApi::_DataPinsMode mode) {
   }
 }
 
-void EepromApi::init() {
+void EepromApi::init_api() {
+}
+
+void EepromApi::init_chip(const String& chip_type) {
+  _chip_is_ready = true;
+
   // set control pins
   pinMode(_chipEnablePin, OUTPUT);
   pinMode(_outputEnablePin, OUTPUT);
@@ -212,8 +251,10 @@ void EepromApi::init() {
   }
 }
 
-void EepromApi::readInit() {
-  _readState = true;
+void EepromApi::set_read_mode(const int read_page_size_bytes) {
+  _read_mode = true;
+  _read_page_size_bytes = read_page_size_bytes;
+
   // initial READ waveforms state
   digitalWrite(_chipEnablePin, HIGH);    // off
   digitalWrite(_outputEnablePin, HIGH);  // off
@@ -225,8 +266,19 @@ void EepromApi::readInit() {
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
 }
 
-uint8_t EepromApi::readData(const uint16_t address) {
-  if (!_readState) {
+void EepromApi::read_page(const int page_no, uint8_t* bytes) {
+  if (_read_page_size_bytes < 1) {
+    return;
+  }
+
+  const int start_address = page_no * _read_page_size_bytes;
+  for (int i = 0; i < _read_page_size_bytes; i++) {
+    bytes[i] = read_byte(start_address + i);
+  }
+}
+
+uint8_t EepromApi::read_byte(const uint16_t address) {
+  if (!_chip_is_ready || !_read_mode) {
     return 0;
   }
 
@@ -275,8 +327,9 @@ uint8_t EepromApi::readData(const uint16_t address) {
   return _bitsArrayToData(bData);
 }
 
-void EepromApi::writeInit() {
-  _writeState = true;
+void EepromApi::set_write_mode(const int write_page_size_bytes) {
+  _write_mode = true;
+  _write_page_size_bytes = write_page_size_bytes;
 
   // initial WRITE waveforms state (!WE controlled)
   digitalWrite(_chipEnablePin, HIGH);    // off
@@ -290,8 +343,19 @@ void EepromApi::writeInit() {
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
 }
 
-void EepromApi::writeData(const uint16_t address, const uint8_t data) {
-  if (!_writeState) {
+void EepromApi::write_page(const int page_no, const uint8_t* bytes) {
+  if (_write_page_size_bytes < 1) {
+    return;
+  }
+
+  const int start_address = page_no * _write_page_size_bytes;
+  for (int i = 0; i < _write_page_size_bytes; i++) {
+    write_byte(start_address + i, bytes[i]);
+  }
+}
+
+void EepromApi::write_byte(const uint16_t address, const uint8_t data) {
+  if (!_chip_is_ready || !_write_mode) {
     return;
   }
 

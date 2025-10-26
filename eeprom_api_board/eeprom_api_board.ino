@@ -28,63 +28,61 @@ static EepromApi eeprom_api(
 static SerialJsonRpcBoard rpc_board(rpc_processor);
 
 void rpc_processor(int request_id, const String &method, const String params[], int params_size) {
-  if (method == "init_read") {
+  if (method == "init_chip") {
     if (params_size != 1) {
-      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (eeprom_type)");
+      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (chip_type)");
       return;
     }
+    String chip_type = params[0];
 
-    String eeprom_type = params[0];
+    eeprom_api.init_chip(chip_type);
+    rpc_board.send_result_string(request_id, "chip is ready");
 
-    eeprom_api.readInit();
+  } else if (method == "set_read_mode") {
+    if (params_size != 1) {
+      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (read_page_size_bytes)");
+      return;
+    }
+    const int read_page_size_bytes = atoi(params[0].c_str());
 
-    rpc_board.send_result_string(request_id, "READ mode ON");
+    eeprom_api.set_read_mode(read_page_size_bytes);
+    rpc_board.send_result_string(request_id, "READ mode is ON");
 
   } else if (method == "read_page") {
-    if (params_size != 2) {
-      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (page_size_bytes, page_no)");
-      return;
-    }
-
-    const int page_size_bytes = atoi(params[0].c_str());
-    const int page_no = atoi(params[1].c_str());
-
-    uint8_t buffer[page_size_bytes];
-    const int start = page_size_bytes * page_no;
-    for (int i = 0; i < page_size_bytes; i++) {
-      buffer[i] = eeprom_api.readData(start + i);
-    }
-
-    rpc_board.send_result_bytes(request_id, buffer, page_size_bytes);
-
-  } else if (method == "init_write") {
     if (params_size != 1) {
-      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (eeprom_type)");
+      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (page_no)");
       return;
     }
+    const int page_no = atoi(params[0].c_str());
 
-    String eeprom_type = params[0];
+    const int buffer_size = eeprom_api.get_read_page_size_bytes();
+    uint8_t buffer[buffer_size];
 
-    eeprom_api.writeInit();
+    eeprom_api.read_page(page_no, buffer);
+    rpc_board.send_result_bytes(request_id, buffer, buffer_size);
 
-    rpc_board.send_result_string(request_id, "WRITE mode ON");
+  } else if (method == "set_write_mode") {
+    if (params_size != 1) {
+      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (write_page_size_bytes)");
+      return;
+    }
+    const int write_page_size_bytes = atoi(params[0].c_str());
+
+    eeprom_api.set_write_mode(write_page_size_bytes);
+    rpc_board.send_result_string(request_id, "WRITE mode is ON");
 
   } else if (method == "write_page") {
-    if (params_size != 3) {
-      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (page_size_bytes, page_no, write_data)");
+    if (params_size != 2) {
+      rpc_board.send_error(request_id, -32602, "Invalid params", "expected: (page_no, bytes_to_write)");
       return;
     }
+    const int page_no = atoi(params[0].c_str());
 
-    const int page_size_bytes = atoi(params[0].c_str());
-    const int page_no = atoi(params[1].c_str());
-    uint8_t byte_array[page_size_bytes];
-    SerialJsonRpcBoard::string_to_byte_array(params[2], page_size_bytes, byte_array);
+    const int buffer_size = eeprom_api.get_write_page_size_bytes();
+    uint8_t buffer[buffer_size];
+    SerialJsonRpcBoard::json_array_to_byte_array(params[1], buffer, buffer_size);
 
-    const int start = page_size_bytes * page_no;
-    for (int i = 0; i < page_size_bytes; i++) {
-      eeprom_api.writeData(start + i, byte_array[i]);
-    }
-
+    eeprom_api.write_page(page_no, buffer);
     rpc_board.send_result_string(request_id, "done");
 
   } else {
@@ -99,7 +97,7 @@ void setup() {
   // rpc board
   rpc_board.init();
   // eeprom api
-  eeprom_api.init();
+  eeprom_api.init_api();
 }
 
 void loop() {

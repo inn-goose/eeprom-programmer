@@ -28,24 +28,32 @@ byte[] read_page(int page_size_bytes, int page_no);
 
 Serial Monitor / `115200` baud
 
+#### Init Chip
+
+```json
+# init_chip(chip_type)
+{"jsonrpc":"2.0","id":0,"method": "init_chip", "params": ["AT28C64"]}
+```
+
 #### Read
 
-```
-# init_read(eeprom_type)
-{"jsonrpc":"2.0","id":0,"method": "init_read", "params": ["AT28C64"]}
+```json
+# set_read_mode(read_page_size_bytes)
+{"jsonrpc":"2.0","id":0,"method": "set_read_mode", "params": [4]}
 
-# read_page(page_size, page_no)
-{"jsonrpc":"2.0","id":0,"method": "read_page", "params": [4, 0]}
+# read_page(page_no)
+{"jsonrpc":"2.0","id":0,"method": "read_page", "params": [0]}
 ```
 
 #### Write
 
-```
-# init_write(eeprom_type)
-{"jsonrpc":"2.0","id":0,"method": "init_write", "params": ["AT28C64"]}
+```json
+# set_write_mode(write_page_size_bytes)
+{"jsonrpc":"2.0","id":0,"method": "set_write_mode", "params": [4]}
 
-# write_page(page_size, page_no, write_pattern)
-{"jsonrpc":"2.0","id":0,"method": "write_page", "params": [4, 0, [255, 255, 255, 255]]}
+# write_page(page_no, data)
+{"jsonrpc":"2.0","id":0,"method": "write_page", "params": [0, [255, 255, 255, 255]]}
+{"jsonrpc":"2.0","id":0,"method": "write_page", "params": [0, [127, 127, 127, 127]]}
 ```
 
 
