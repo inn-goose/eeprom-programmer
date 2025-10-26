@@ -35,8 +35,19 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     String chip_type = params[0];
 
-    eeprom_api.init_chip(chip_type);
-    rpc_board.send_result_string(request_id, "chip is ready");
+    ErrorCode code = eeprom_api.init_chip(chip_type);
+    if (code != ErrorCode::SUCCESS) {
+      const size_t error_data_buf_size = 50;
+      char error_data_buf[error_data_buf_size];
+      snprintf(error_data_buf, error_data_buf_size, "Failed to init %s chip with error: %d", chip_type.c_str(), code);
+      rpc_board.send_error(request_id, -32010, "Service error", error_data_buf);
+      return;
+    }
+
+    const size_t result_buf_size = 50;
+    char result_buf[result_buf_size];
+    snprintf(result_buf, result_buf_size, "Chip %s is Ready", chip_type.c_str());
+    rpc_board.send_result_string(request_id, result_buf);
 
   } else if (method == "set_read_mode") {
     if (params_size != 1) {
@@ -45,8 +56,19 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int read_page_size_bytes = atoi(params[0].c_str());
 
-    eeprom_api.set_read_mode(read_page_size_bytes);
-    rpc_board.send_result_string(request_id, "READ mode is ON");
+    ErrorCode code = eeprom_api.set_read_mode(read_page_size_bytes);
+    if (code != ErrorCode::SUCCESS) {
+      const size_t error_data_buf_size = 70;
+      char error_data_buf[error_data_buf_size];
+      snprintf(error_data_buf, error_data_buf_size, "Failed to set READ mode for page size %d with error: %d", read_page_size_bytes, code);
+      rpc_board.send_error(request_id, -32020, "Service error", error_data_buf);
+      return;
+    }
+
+    const size_t result_buf_size = 50;
+    char result_buf[result_buf_size];
+    snprintf(result_buf, result_buf_size, "READ mode is ON for %d bytes pages", read_page_size_bytes);
+    rpc_board.send_result_string(request_id, result_buf);
 
   } else if (method == "read_page") {
     if (params_size != 1) {
@@ -55,10 +77,18 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_api.get_read_page_size_bytes();
+    const int buffer_size = eeprom_api.get_page_size_bytes();
     uint8_t buffer[buffer_size];
 
-    eeprom_api.read_page(page_no, buffer);
+    ErrorCode code = eeprom_api.read_page(page_no, buffer);
+    if (code != ErrorCode::SUCCESS) {
+      const size_t error_data_buf_size = 70;
+      char error_data_buf[error_data_buf_size];
+      snprintf(error_data_buf, error_data_buf_size, "Failed to READ page %d with error: %d", page_no, code);
+      rpc_board.send_error(request_id, -32021, "Service error", error_data_buf);
+      return;
+    }
+
     rpc_board.send_result_bytes(request_id, buffer, buffer_size);
 
   } else if (method == "set_write_mode") {
@@ -68,8 +98,19 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int write_page_size_bytes = atoi(params[0].c_str());
 
-    eeprom_api.set_write_mode(write_page_size_bytes);
-    rpc_board.send_result_string(request_id, "WRITE mode is ON");
+    ErrorCode code = eeprom_api.set_write_mode(write_page_size_bytes);
+    if (code != ErrorCode::SUCCESS) {
+      const size_t error_data_buf_size = 70;
+      char error_data_buf[error_data_buf_size];
+      snprintf(error_data_buf, error_data_buf_size, "Failed to set WRITE mode for page size %d with error: %d", write_page_size_bytes, code);
+      rpc_board.send_error(request_id, -32030, "Service error", error_data_buf);
+      return;
+    }
+
+    const size_t result_buf_size = 50;
+    char result_buf[result_buf_size];
+    snprintf(result_buf, result_buf_size, "WRITE mode is ON for %d bytes pages", write_page_size_bytes);
+    rpc_board.send_result_string(request_id, result_buf);
 
   } else if (method == "write_page") {
     if (params_size != 2) {
@@ -78,12 +119,23 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_api.get_write_page_size_bytes();
+    const int buffer_size = eeprom_api.get_page_size_bytes();
     uint8_t buffer[buffer_size];
     SerialJsonRpcBoard::json_array_to_byte_array(params[1], buffer, buffer_size);
 
-    eeprom_api.write_page(page_no, buffer);
-    rpc_board.send_result_string(request_id, "done");
+    ErrorCode code = eeprom_api.write_page(page_no, buffer);
+    if (code != ErrorCode::SUCCESS) {
+      const size_t error_data_buf_size = 70;
+      char error_data_buf[error_data_buf_size];
+      snprintf(error_data_buf, error_data_buf_size, "Failed to WRITE page %d with error: %d", page_no, code);
+      rpc_board.send_error(request_id, -32031, "Service error", error_data_buf);
+      return;
+    }
+
+    const size_t result_buf_size = 50;
+    char result_buf[result_buf_size];
+    snprintf(result_buf, result_buf_size, "WRITE success. %d bytes written", buffer_size);
+    rpc_board.send_result_string(request_id, result_buf);
 
   } else {
     rpc_board.send_error(request_id, -32601, "Method not found", method.c_str());

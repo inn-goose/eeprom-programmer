@@ -18,9 +18,17 @@ namespace EepromApiLibrary {
 
 enum ErrorCode : int {
   SUCCESS = 0,
-  INIT_ERROR,
-  READ_ERROR,
-  WRITE_ERROR
+  CHIP_NOT_SUPPORTED = 1,
+  ALREADY_INITIALIZED = 2,
+  NOT_INITIALIZED = 3,
+  INVALID_PAGE_SIZE = 4,
+  INVALID_PAGE_NO = 5,
+  INVALID_ADDRESS = 6,
+  READ_MODE_DISABLED = 7,
+  READ_FAILED = 8,
+  WRITE_MODE_DISABLED = 9,
+  WRITE_FAILED = 10,
+  UNKNOWN_ERROR = 1000
 };
 
 
@@ -44,23 +52,20 @@ public:
 
   // init
   void init_api();
-  void init_chip(const String& chip_type);
+  ErrorCode init_chip(const String& chip_type);
+  inline int get_page_size_bytes() {
+    return _page_size_bytes;
+  }
 
   // read
-  void set_read_mode(const int read_page_size_bytes);
-  inline int get_read_page_size_bytes() {
-    return _read_page_size_bytes;
-  }
-  void read_page(const int page_no, uint8_t* bytes);
-  uint8_t read_byte(const uint16_t address);
+  ErrorCode set_read_mode(const int page_size_bytes);
+  ErrorCode read_page(const int page_no, uint8_t* bytes);
+  ErrorCode read_byte(const uint16_t address, uint8_t &byte);
 
   // write
-  void set_write_mode(const int write_page_size_bytes);
-  inline int get_write_page_size_bytes() {
-    return _write_page_size_bytes;
-  }
-  void write_page(const int page_no, const uint8_t* bytes);
-  void write_byte(const uint16_t address, const uint8_t data);
+  ErrorCode set_write_mode(const int page_size_bytes);
+  ErrorCode write_page(const int page_no, const uint8_t* bytes);
+  ErrorCode write_byte(const uint16_t address, const uint8_t data);
 
   // performance
   int busyStateUsec() {
@@ -94,6 +99,7 @@ public:
 private:
   static const int _EEPROM_28C64_ADDRRESS_BUS_SIZE = 13;
   static const int _EEPROM_28C64_DATA_BUS_SIZE = 8;
+  static const int _MAX_PAGE_SIZE = 64;
 
   enum _DataPinsMode {
     DATA_PINS_READ,
@@ -118,10 +124,10 @@ private:
 
   // inner state
   bool _chip_is_ready;
+  int _memory_size_bytes;
+  int _page_size_bytes;
   bool _read_mode;
-  int _read_page_size_bytes;
   bool _write_mode;
-  int _write_page_size_bytes;
 
   // performance
   int _busyStateUsec;
@@ -193,10 +199,10 @@ EepromApi::EepromApi(
 
   // inner state
   _chip_is_ready = false;
+  _memory_size_bytes = 0;
+  _page_size_bytes = 0;
   _read_mode = false;
-  _read_page_size_bytes = 0;
   _write_mode = false;
-  _write_page_size_bytes = 0;
 
   // performance
   _busyStateUsec = 0;
@@ -218,8 +224,18 @@ void EepromApi::_changeDataPinsMode(const EepromApi::_DataPinsMode mode) {
 void EepromApi::init_api() {
 }
 
-void EepromApi::init_chip(const String& chip_type) {
+ErrorCode EepromApi::init_chip(const String& chip_type) {
+  if (_chip_is_ready) {
+    return ErrorCode::ALREADY_INITIALIZED;
+  }
+  String _chip_type = chip_type;
+  _chip_type.toUpperCase();
+  if (_chip_type != "AT28C64") {
+    return ErrorCode::CHIP_NOT_SUPPORTED;
+  }
   _chip_is_ready = true;
+  // AT28C64 only, hardcoded
+  _memory_size_bytes = 8192;
 
   // set control pins
   pinMode(_chipEnablePin, OUTPUT);
@@ -249,11 +265,19 @@ void EepromApi::init_chip(const String& chip_type) {
     // best practice: use INPUT_PULLUP non non-connected pins
     pinMode(_nonConnectedPins[i], INPUT_PULLUP);
   }
+
+  return ErrorCode::SUCCESS;
 }
 
-void EepromApi::set_read_mode(const int read_page_size_bytes) {
+ErrorCode EepromApi::set_read_mode(const int page_size_bytes) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (page_size_bytes < 1 || page_size_bytes > _MAX_PAGE_SIZE) {
+    return ErrorCode::INVALID_PAGE_SIZE;
+  }
   _read_mode = true;
-  _read_page_size_bytes = read_page_size_bytes;
+  _page_size_bytes = page_size_bytes;
 
   // initial READ waveforms state
   digitalWrite(_chipEnablePin, HIGH);    // off
@@ -264,22 +288,44 @@ void EepromApi::set_read_mode(const int read_page_size_bytes) {
 
   // status pin / open drain / NC
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
+
+  return ErrorCode::SUCCESS;
 }
 
-void EepromApi::read_page(const int page_no, uint8_t* bytes) {
-  if (_read_page_size_bytes < 1) {
-    return;
+ErrorCode EepromApi::read_page(const int page_no, uint8_t* bytes) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (!_read_mode) {
+    return ErrorCode::READ_MODE_DISABLED;
+  }
+  const int max_page_no = _memory_size_bytes / _page_size_bytes;
+  if (page_no < 0 || page_no >= max_page_no) {
+    return ErrorCode::INVALID_PAGE_NO;
   }
 
-  const int start_address = page_no * _read_page_size_bytes;
-  for (int i = 0; i < _read_page_size_bytes; i++) {
-    bytes[i] = read_byte(start_address + i);
+  const int start_address = page_no * _page_size_bytes;
+  for (int i = 0; i < _page_size_bytes; i++) {
+    uint8_t byte = -1;
+    ErrorCode code = read_byte(start_address + i, byte);
+    if (code != ErrorCode::SUCCESS) {
+      return ErrorCode::READ_FAILED;
+    }
+    bytes[i] = byte;
   }
+
+  return ErrorCode::SUCCESS;
 }
 
-uint8_t EepromApi::read_byte(const uint16_t address) {
-  if (!_chip_is_ready || !_read_mode) {
-    return 0;
+ErrorCode EepromApi::read_byte(const uint16_t address, uint8_t &byte) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (!_read_mode) {
+    return ErrorCode::READ_MODE_DISABLED;
+  }
+  if (address < 0 || address >= _memory_size_bytes) {
+    return ErrorCode::INVALID_ADDRESS;
   }
 
   bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
@@ -324,12 +370,20 @@ uint8_t EepromApi::read_byte(const uint16_t address) {
     digitalWrite(_addressPins[i], 0);
   }
 
-  return _bitsArrayToData(bData);
+  byte = _bitsArrayToData(bData);
+
+  return ErrorCode::SUCCESS;
 }
 
-void EepromApi::set_write_mode(const int write_page_size_bytes) {
+ErrorCode EepromApi::set_write_mode(const int page_size_bytes) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (page_size_bytes < 1 || page_size_bytes > _MAX_PAGE_SIZE) {
+    return ErrorCode::INVALID_PAGE_SIZE;
+  }
   _write_mode = true;
-  _write_page_size_bytes = write_page_size_bytes;
+  _page_size_bytes = page_size_bytes;
 
   // initial WRITE waveforms state (!WE controlled)
   digitalWrite(_chipEnablePin, HIGH);    // off
@@ -341,22 +395,42 @@ void EepromApi::set_write_mode(const int write_page_size_bytes) {
 
   // status pin / open drain / read status
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
+
+  return ErrorCode::SUCCESS;
 }
 
-void EepromApi::write_page(const int page_no, const uint8_t* bytes) {
-  if (_write_page_size_bytes < 1) {
-    return;
+ErrorCode EepromApi::write_page(const int page_no, const uint8_t* bytes) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (!_write_mode) {
+    return ErrorCode::WRITE_MODE_DISABLED;
+  }
+  const int max_page_no = _memory_size_bytes / _page_size_bytes;
+  if (page_no < 0 || page_no >= max_page_no) {
+    return ErrorCode::INVALID_PAGE_NO;
   }
 
-  const int start_address = page_no * _write_page_size_bytes;
-  for (int i = 0; i < _write_page_size_bytes; i++) {
-    write_byte(start_address + i, bytes[i]);
+  const int start_address = page_no * _page_size_bytes;
+  for (int i = 0; i < _page_size_bytes; i++) {
+    ErrorCode code = write_byte(start_address + i, bytes[i]);
+    if (code != ErrorCode::SUCCESS) {
+      return ErrorCode::WRITE_FAILED;
+    }
   }
+
+  return ErrorCode::SUCCESS;
 }
 
-void EepromApi::write_byte(const uint16_t address, const uint8_t data) {
-  if (!_chip_is_ready || !_write_mode) {
-    return;
+ErrorCode EepromApi::write_byte(const uint16_t address, const uint8_t data) {
+  if (!_chip_is_ready) {
+    return ErrorCode::NOT_INITIALIZED;
+  }
+  if (!_write_mode) {
+    return ErrorCode::WRITE_MODE_DISABLED;
+  }
+  if (address < 0 || address >= _memory_size_bytes) {
+    return ErrorCode::INVALID_ADDRESS;
   }
 
   // (0) prepare inputs
@@ -429,6 +503,8 @@ void EepromApi::write_byte(const uint16_t address, const uint8_t data) {
   }
 
   _busyStateUsec = micros() - busyStateStart;
+
+  return ErrorCode::SUCCESS;
 }
 
 }  // EepromApiLibrary
