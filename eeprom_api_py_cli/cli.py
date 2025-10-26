@@ -50,6 +50,9 @@ def cli() -> int:
     elif args.erase is not None:
         try:
             erase_pattern = int(args.erase, 16)
+            if erase_pattern < 0 or erase_pattern > 255:
+                print(f"invalid erase pattern {args.erase}, should be within [0, 255] range")
+                return 1
         except Exception:
             print(f"invalid erase pattern {args.erase}, should be a HEX value")
             return 1
@@ -60,11 +63,17 @@ def cli() -> int:
             return 1
 
     elif args.write is not None:
-        try:
-            eeprom_api_client.EepromApiClient.write_data_to_file(json_rpc_client, args.device, args.write)
-        except Exception as ex:
-            print(f"failed to write data with: {str(ex)}")
-            return 1
+        for i in range(1, args.attempts + 1):
+            if args.attempts > 1:
+                file_path = number_file_path(args.read, i)
+            else:
+                file_path = args.read
+            print(f"read data to {file_path}")
+            try:
+                eeprom_api_client.EepromApiClient.write_data_to_file(json_rpc_client, args.device, file_path)
+            except Exception as ex:
+                print(f"failed to write data with: {str(ex)}")
+                return 1
     else:
         print("unknown mode")
 

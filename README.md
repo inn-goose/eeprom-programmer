@@ -38,7 +38,7 @@ Serial Monitor / `115200` baud
 #### Read
 
 ```json
-# set_read_mode(read_page_size_bytes)
+# set_read_mode(page_size_bytes)
 {"jsonrpc":"2.0","id":0,"method": "set_read_mode", "params": [4]}
 
 # read_page(page_no)
@@ -48,7 +48,7 @@ Serial Monitor / `115200` baud
 #### Write
 
 ```json
-# set_write_mode(write_page_size_bytes)
+# set_write_mode(page_size_bytes)
 {"jsonrpc":"2.0","id":0,"method": "set_write_mode", "params": [4]}
 
 # write_page(page_no, data)
@@ -86,8 +86,8 @@ python -m serial.tools.list_ports
 ```commandline
 mkdir ./tmp
 
-# read the data
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api.bin
+# read data from file
+PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom_api.bin
 
 # convert to HEX
 xxd tmp/dump_eeprom_api.bin > tmp/dump_eeprom_api.hex
@@ -103,7 +103,8 @@ PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /
 #### write
 
 ```commandline
-🚧 WIP 🚧
+# write data from file
+PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
 ```
 
 

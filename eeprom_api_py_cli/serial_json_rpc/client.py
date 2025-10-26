@@ -58,7 +58,7 @@ class SerialJsonRpcClient:
         request = self._build_request(method, params)
 
         # send request and read the amount of written bytes
-        w_res = self.serial.write((json.dumps(request) + '\n').encode())
+        w_res = self.serial.write((json.dumps(request, separators=(',', ':')) + '\n').encode())
         if not w_res:
             raise SerialJsonRpcClientError(
                 "failed to send request, 0 bytes written")
