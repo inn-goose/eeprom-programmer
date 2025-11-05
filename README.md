@@ -1,14 +1,11 @@
 # EEPROM Programmer
 
+> Note: this project concerns external EEPROM chips, not the built-in Arduino EEPROM memory.
+
 ## TLDR
 
 🚧 WIP 🚧
 
-[EEPROM Read and Write Operations with Arduino](https://goose.sh/blog/eeprom-read-and-write-operations/)
-
-[EEPROM Programmer Performance with Arduino](https://goose.sh/blog/eeprom-api-performance/)
-
-[Debugging the EEPROM Programmer](https://goose.sh/blog/debugging-eeprom-api/)
 
 ## Wiring Diagram
 
@@ -18,7 +15,7 @@
 
 set pins layout in `eeprom_wiring.h`
 
-API interface:
+Programmer interface:
 ```cpp
 // initialize chip pinout 
 ErrorCode init_chip(const String& chip_type);
@@ -126,10 +123,10 @@ curl -LJ --output tmp/zenith_zt1_eeprom.bin "https://github.com/misterblack1/zen
 source venv/bin/activate
 
 # read data from file
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom_api.bin
+PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
 
 # convert to HEX
-xxd tmp/dump_eeprom_api.bin > tmp/dump_eeprom_api.hex
+xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
 ```
 
 #### erase
@@ -138,7 +135,7 @@ xxd tmp/dump_eeprom_api.bin > tmp/dump_eeprom_api.hex
 source venv/bin/activate
 
 # erase with FF pattern
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase ff
+PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase ff
 ```
 
 #### write
@@ -147,7 +144,7 @@ PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /
 source venv/bin/activate
 
 # write data from file
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
+PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
 ```
 
 
@@ -160,13 +157,13 @@ brew install minipro
 minipro -p AT28C64 -s -u -w tmp/zenith_zt1_eeprom.bin
 
 # read the data
-minipro -p AT28C64 -u -r tmp/dump_programmer.bin
+minipro -p AT28C64 -u -r tmp/dump_xgecu.bin
 
 # convert to HEX
-xxd tmp/dump_programmer.bin > tmp/dump_programmer.hex
+xxd tmp/dump_xgecu.bin > tmp/dump_xgecu.hex
 
 # compare
-vimdiff tmp/dump_eeprom_api.hex tmp/dump_programmer.hex
+vimdiff tmp/dump_eeprom.hex tmp/dump_xgecu.hex
 ```
 
 
@@ -177,19 +174,19 @@ vimdiff tmp/dump_eeprom_api.hex tmp/dump_programmer.hex
 
 ```bash
 # read w/o reset
-PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api.bin --attempts 3
+PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom.bin --attempts 3
 
 # read w/ reset
-for i in `seq 1 3`; do PYTHONPATH=./eeprom_api_py_cli/:$PYTHONPATH python3 ./eeprom_api_py_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_api_$i.bin; done
+for i in `seq 1 3`; do PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_$i.bin; done
 
 # convert to HEX
-for i in `seq 1 3`; do xxd tmp/dump_eeprom_api_$i.bin > tmp/dump_eeprom_api_$i.hex; done
+for i in `seq 1 3`; do xxd tmp/dump_eeprom_$i.bin > tmp/dump_eeprom_$i.hex; done
 
 # compare
 
-vimdiff tmp/dump_eeprom_api_[1,3].hex
+vimdiff tmp/dump_eeprom_[1,3].hex
 
-vimdiff tmp/dump_eeprom_api_*.hex
+vimdiff tmp/dump_eeprom_*.hex
 
-vimdiff tmp/dump_eeprom_api_1.hex tmp/dump_programmer.hex
+vimdiff tmp/dump_eeprom_1.hex tmp/dump_xgecu.hex
 ```

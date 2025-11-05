@@ -264,6 +264,8 @@ ErrorCode EepromApi::init_chip(const String& chip_type) {
   for (int i = 0; i < _nonConnectedPinsSize; i++) {
     // best practice: use INPUT_PULLUP non non-connected pins
     pinMode(_nonConnectedPins[i], INPUT_PULLUP);
+    // pinMode(_nonConnectedPins[i], OUTPUT);
+    // digitalWrite(_nonConnectedPins[i], LOW);
   }
 
   return ErrorCode::SUCCESS;

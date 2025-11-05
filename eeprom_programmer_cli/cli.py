@@ -65,10 +65,10 @@ def cli() -> int:
     elif args.write is not None:
         for i in range(1, args.attempts + 1):
             if args.attempts > 1:
-                file_path = number_file_path(args.read, i)
+                file_path = number_file_path(args.write, i)
             else:
-                file_path = args.read
-            print(f"read data to {file_path}")
+                file_path = args.write
+            print(f"write data to {file_path}")
             try:
                 eeprom_api_client.EepromApiClient.write_data_to_file(json_rpc_client, args.device, file_path)
             except Exception as ex:
