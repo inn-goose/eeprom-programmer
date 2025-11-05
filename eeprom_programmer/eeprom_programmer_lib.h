@@ -3,15 +3,6 @@
 #ifndef __eeprom_programmer_lib_h__
 #define __eeprom_programmer_lib_h__
 
-// #define _EEPROM_DEBUG_LOGGING
-#ifdef _EEPROM_DEBUG_LOGGING
-#define _debugPrint(log) Serial.print(log)
-#define _debugPrintln(log) Serial.println(log)
-#else
-#define _debugPrint(log)
-#define _debugPrintln(log)
-#endif  // _EEPROM_DEBUG_LOGGING
-
 namespace EepromProgrammerLibrary {
 
 // Error Codes
@@ -338,10 +329,8 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   _addressToBitsArray(address, bAddress);
 
   // (1) set address
-  _debugPrint("(PROGR) R [" + String(address) + "] | addr[LSB]: b");
   for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
     digitalWrite(_addressPins[i], bAddress[i]);
-    _debugPrint(bAddress[i]);
   }
 
   // (2) chip enable
@@ -354,12 +343,9 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   delayMicroseconds(1);  // arduino cannot delay in ns, only us
 
   // (5) read data
-  _debugPrint(" | data[LSB]: b");
   for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
     bData[i] = digitalRead(_dataPins[i]) == HIGH ? 1 : 0;
-    _debugPrint(bData[i]);
   }
-  _debugPrintln();
 
   // (6) output disable
   digitalWrite(_outputEnablePin, HIGH);
@@ -444,10 +430,8 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   _dataToBitsArray(data, bData);
 
   // (1) set address
-  _debugPrint("(PROGR) W [" + String(address) + "] | addr: b");
   for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
     digitalWrite(_addressPins[i], bAddress[i]);
-    _debugPrint(bAddress[i]);
   }
 
   // (2) chip enable
@@ -457,12 +441,9 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   digitalWrite(_writeEnablePin, LOW);
 
   // (4) write data
-  _debugPrint(" | data: b");
   for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
     digitalWrite(_dataPins[i], bData[i]);
-    _debugPrint(bData[i]);
   }
-  _debugPrintln();
 
   // (5) wrtie disable (initiates the data flush)
   digitalWrite(_writeEnablePin, HIGH);
