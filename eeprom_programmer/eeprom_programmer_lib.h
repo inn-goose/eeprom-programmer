@@ -58,9 +58,13 @@ public:
   ErrorCode write_page(const int page_no, const uint8_t* bytes);
   ErrorCode write_byte(const uint16_t address, const uint8_t data);
 
-  // performance
-  int busyStateUsec() {
-    return _busyStateUsec;
+  // debugging
+  int get_write_op_wait_time_usec() {
+    return _write_op_wait_time_usec;
+  }
+
+  int get_write_op_wait_cycles() {
+    return _write_op_wait_cycles;
   }
 
   // helpers
@@ -92,6 +96,10 @@ private:
   static const int _EEPROM_28C64_DATA_BUS_SIZE = 8;
   static const int _MAX_PAGE_SIZE = 64;
 
+  // tune this constant if write is not working
+  // if the waiting is insufficient, data propagation may be incomplete
+  static const int _WRITE_SUCCESS_WAITING_TIME_USEC = 1.4 * 1000;
+
   enum _DataPinsMode {
     DATA_PINS_READ,
     DATA_PINS_WRITE,
@@ -117,15 +125,19 @@ private:
   uint8_t _nonConnectedPins[4];
   size_t _nonConnectedPinsSize;
 
-  // inner state
+  // inner
   bool _chip_is_ready;
+  bool _has_rdy_busy_pin;
+
+  // modes
   int _memory_size_bytes;
   int _page_size_bytes;
   bool _read_mode;
   bool _write_mode;
 
-  // performance
-  int _busyStateUsec;
+  // debugging
+  int _write_op_wait_time_usec;
+  int _write_op_wait_cycles;
 
   // bit operations
   // Most Significant Bit First ordering
@@ -192,15 +204,19 @@ EepromProgrammer::EepromProgrammer(
     memcpy(_nonConnectedPins, nonConnectedPins, _nonConnectedPinsSize);
   }
 
-  // inner state
+  // inner
   _chip_is_ready = false;
+  _has_rdy_busy_pin = false;
+
+  // mode
   _memory_size_bytes = 0;
   _page_size_bytes = 0;
   _read_mode = false;
   _write_mode = false;
 
   // performance
-  _busyStateUsec = 0;
+  _write_op_wait_time_usec = 0;
+  _write_op_wait_cycles = -1;
 }
 
 void EepromProgrammer::_setAddressPinsMode() {
@@ -254,13 +270,21 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
     return ErrorCode::ALREADY_INITIALIZED;
   }
   String _chip_type = chip_type;
-  _chip_type.toUpperCase();
+
+  // AT28C64 only, hardcoded
   if (_chip_type != "AT28C64") {
     return ErrorCode::CHIP_NOT_SUPPORTED;
   }
+
   _chip_is_ready = true;
-  // AT28C64 only, hardcoded
-  _memory_size_bytes = 8192;
+
+  if (chip_type == "AT28C64") {
+    _memory_size_bytes = pow(2, 13);  // 13 address pins
+    _has_rdy_busy_pin = true;  // has RDY/!BUSY
+  } else if (chip_type == "AT28C256") {
+    _memory_size_bytes = pow(2, 15);  // 15 address pins
+    _has_rdy_busy_pin = false;  // only address pins
+  }
 
   // set control pins
   pinMode(_chipEnablePin, OUTPUT);
@@ -451,42 +475,76 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   // (5) wrtie disable (initiates the data flush)
   digitalWrite(_writeEnablePin, HIGH);
 
-  // (6) chip disable
-  digitalWrite(_chipEnablePin, HIGH);
+  // (6) wait until successfull data propagation
+  int _write_op_start_usec = micros();
+  _write_op_wait_time_usec = 0;
+  _write_op_wait_cycles = -1;
+  if (_has_rdy_busy_pin) {
+    // wait until device switches to !BUSY state, if chip has the RDY/!BUSY pin
+    // Time to Device Busy (delta between WE and !BUSY) == 50 ms MAX (spec)
+    delayMicroseconds(1);  // arduino cannot delay in ns, only us
+    int currBusyState = digitalRead(_readyBusyOutputPin);
 
-  // (7) wait until device switches to !BUSY state
-  // Time to Device Busy (delta between WE and !BUSY) == 50 ms MAX (spec)
-  delayMicroseconds(1);  // arduino cannot delay in ns, only us
-  int currBusyState = digitalRead(_readyBusyOutputPin);
+    // wait until !BUSY state switches to READY state (1 ms MAX)
+    // or just wait for the Write Cycle Time MAX
+    if (currBusyState == LOW) {
+      // device is in !BUSY state
+      // use the READY/!BUSY pin status to wait for the Write Cycle End
+      _write_op_wait_cycles = 0;
+      const int delay_usec = 100;
 
-  int busyStateStart = micros();
+      int prevBusyState = currBusyState;
+      for (int i = 0; i < _WRITE_SUCCESS_WAITING_TIME_USEC / delay_usec; i++) {
+        delayMicroseconds(delay_usec);
+        _write_op_wait_cycles += 1;
 
-  // wait until !BUSY state switches to READY state (1 ms MAX)
-  // or just wait for the Write Cycle Time MAX
-  static const int totalDelayMsec = 1.4 * 1000;  // 1 ms is not enough
-  if (currBusyState == LOW) {
-    // device is in !BUSY state
-    // use the READY/!BUSY pin status to wait for the Write Cycle End
-    int prevBusyState = currBusyState;
-    static const int attemptDelayMsec = 200;
-    for (int i = 0; i < totalDelayMsec / attemptDelayMsec; i++) {
-      delayMicroseconds(attemptDelayMsec);
-      prevBusyState = currBusyState;
-      currBusyState = digitalRead(_readyBusyOutputPin);
-      if (prevBusyState == LOW && currBusyState == HIGH) {  // rising edge
+        prevBusyState = currBusyState;
+        currBusyState = digitalRead(_readyBusyOutputPin);
+        if (prevBusyState == LOW && currBusyState == HIGH) {  // rising edge
+          break;
+        }
+      }
+    } else {
+      // device not in !BUSY state
+      // use generic delay
+      delayMicroseconds(_WRITE_SUCCESS_WAITING_TIME_USEC);
+    }
+
+  } else {
+    // use !DATA polling, if chip doesn't have the RDY/!BUSY pin
+    // following the data poll waveforms, the data is read in a loop until the value matches the one written
+    // during the write procedure, the data pins remain in a metastable state.
+    _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+
+    _write_op_wait_cycles = 0;
+    const int delay_usec = 50;
+
+    for (int i = 0; i < _WRITE_SUCCESS_WAITING_TIME_USEC / delay_usec; i++) {
+      delayMicroseconds(delay_usec);
+      _write_op_wait_cycles += 1;
+
+      // !DATA polling waveforms require to switch !CE and !OE for every attempt
+      digitalWrite(_chipEnablePin, LOW);
+      digitalWrite(_outputEnablePin, LOW);
+      // !OE to Output Delay (delta between OE and data ready) == 100 ns MAX
+      delayMicroseconds(1);  // arduino cannot delay in ns, only us
+      uint8_t read_result = _readDataPins();
+      digitalWrite(_outputEnablePin, HIGH);
+      digitalWrite(_chipEnablePin, HIGH);
+      if (read_result == data) {
         break;
       }
     }
-  } else {
-    // device not in !BUSY state
-    // use generic delay
-    delayMicroseconds(totalDelayMsec);
+
+    _setDataPinsMode(_DataPinsMode::DATA_PINS_WRITE);
   }
+  _write_op_wait_time_usec = micros() - _write_op_start_usec;
+
+  // (7) chip disable
+  digitalWrite(_chipEnablePin, HIGH);
 
   // (8) reset address
   _writeAddressPins(0);
-
-  _busyStateUsec = micros() - busyStateStart;
 
   return ErrorCode::SUCCESS;
 }
