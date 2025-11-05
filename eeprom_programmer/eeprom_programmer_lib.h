@@ -106,7 +106,7 @@ private:
   };
   void _setAddressPinsMode();
   void _setDataPinsMode(const _DataPinsMode mode);
-  void _writeAddressPins(const uint8_t address);
+  void _writeAddressPins(const uint16_t address);
   uint8_t _readDataPins();
   void _writeDataPins(const uint8_t data);
 
@@ -238,7 +238,7 @@ void EepromProgrammer::_setDataPinsMode(const EepromProgrammer::_DataPinsMode mo
   }
 }
 
-void EepromProgrammer::_writeAddressPins(const uint8_t address) {
+void EepromProgrammer::_writeAddressPins(const uint16_t address) {
   bool bAddress[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
   _addressToBitsArray(address, bAddress);
   for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
