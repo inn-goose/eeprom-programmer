@@ -96,7 +96,11 @@ private:
     DATA_PINS_READ,
     DATA_PINS_WRITE,
   };
-  void _changeDataPinsMode(const _DataPinsMode mode);
+  void _setAddressPinsMode();
+  void _setDataPinsMode(const _DataPinsMode mode);
+  void _writeAddressPins(const uint8_t address);
+  uint8_t _readDataPins();
+  void _writeDataPins(const uint8_t data);
 
   // PINS
   // address
@@ -199,7 +203,13 @@ EepromProgrammer::EepromProgrammer(
   _busyStateUsec = 0;
 }
 
-void EepromProgrammer::_changeDataPinsMode(const EepromProgrammer::_DataPinsMode mode) {
+void EepromProgrammer::_setAddressPinsMode() {
+  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
+    pinMode(_addressPins[i], OUTPUT);
+  }
+}
+
+void EepromProgrammer::_setDataPinsMode(const EepromProgrammer::_DataPinsMode mode) {
   if (mode == EepromProgrammer::_DataPinsMode::DATA_PINS_READ) {
     for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
       pinMode(_dataPins[i], INPUT_PULLUP);
@@ -209,6 +219,30 @@ void EepromProgrammer::_changeDataPinsMode(const EepromProgrammer::_DataPinsMode
     for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
       pinMode(_dataPins[i], OUTPUT);
     }
+  }
+}
+
+void EepromProgrammer::_writeAddressPins(const uint8_t address) {
+  bool bAddress[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
+  _addressToBitsArray(address, bAddress);
+  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
+    digitalWrite(_addressPins[i], bAddress[i]);
+  }
+}
+
+uint8_t EepromProgrammer::_readDataPins() {
+  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
+  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
+    bData[i] = digitalRead(_dataPins[i]) == HIGH ? 1 : 0;
+  }
+  return _bitsArrayToData(bData);
+}
+
+void EepromProgrammer::_writeDataPins(const uint8_t data) {
+  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
+  _dataToBitsArray(data, bData);
+  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
+    digitalWrite(_dataPins[i], bData[i]);
   }
 }
 
@@ -238,15 +272,11 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   digitalWrite(_writeEnablePin, HIGH);
 
   // address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    pinMode(_addressPins[i], OUTPUT);
-  }
+  _setAddressPinsMode();
   // reset address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], 0);
-  }
+  _writeAddressPins(0);
 
-  _changeDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+  _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
 
   // status pin / open drain / NC
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -277,7 +307,7 @@ ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
   digitalWrite(_outputEnablePin, HIGH);  // off
   digitalWrite(_writeEnablePin, HIGH);   // not in use
   // switch data pins to READ mode
-  _changeDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+  _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
 
   // status pin / open drain / NC
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -321,17 +351,8 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
     return ErrorCode::INVALID_ADDRESS;
   }
 
-  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
-
-  // (0) prepare inputs
-  // convert address to bits
-  bool bAddress[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
-  _addressToBitsArray(address, bAddress);
-
   // (1) set address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], bAddress[i]);
-  }
+  _writeAddressPins(address);
 
   // (2) chip enable
   digitalWrite(_chipEnablePin, LOW);
@@ -343,9 +364,7 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   delayMicroseconds(1);  // arduino cannot delay in ns, only us
 
   // (5) read data
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    bData[i] = digitalRead(_dataPins[i]) == HIGH ? 1 : 0;
-  }
+  byte = _readDataPins();
 
   // (6) output disable
   digitalWrite(_outputEnablePin, HIGH);
@@ -354,11 +373,7 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   digitalWrite(_chipEnablePin, HIGH);
 
   // (8) reset address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], 0);
-  }
-
-  byte = _bitsArrayToData(bData);
+  _writeAddressPins(0);
 
   return ErrorCode::SUCCESS;
 }
@@ -379,7 +394,7 @@ ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
   digitalWrite(_writeEnablePin, HIGH);   // off
 
   // switch data pins to WRITE mode
-  _changeDataPinsMode(_DataPinsMode::DATA_PINS_WRITE);
+  _setDataPinsMode(_DataPinsMode::DATA_PINS_WRITE);
 
   // status pin / open drain / read status
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -421,18 +436,8 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
     return ErrorCode::INVALID_ADDRESS;
   }
 
-  // (0) prepare inputs
-  // convert address to bits
-  bool bAddress[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
-  _addressToBitsArray(address, bAddress);
-  // convert data to bits
-  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
-  _dataToBitsArray(data, bData);
-
   // (1) set address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], bAddress[i]);
-  }
+  _writeAddressPins(address);
 
   // (2) chip enable
   digitalWrite(_chipEnablePin, LOW);
@@ -441,9 +446,7 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   digitalWrite(_writeEnablePin, LOW);
 
   // (4) write data
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    digitalWrite(_dataPins[i], bData[i]);
-  }
+  _writeDataPins(data);
 
   // (5) wrtie disable (initiates the data flush)
   digitalWrite(_writeEnablePin, HIGH);
@@ -481,9 +484,7 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   }
 
   // (8) reset address
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], 0);
-  }
+  _writeAddressPins(0);
 
   _busyStateUsec = micros() - busyStateStart;
 
