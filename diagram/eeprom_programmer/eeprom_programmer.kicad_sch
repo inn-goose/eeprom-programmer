@@ -5,7 +5,7 @@
 	(uuid "758b2bf2-b8e4-4334-80c5-ff5056cbce48")
 	(paper "A4")
 	(lib_symbols
-		(symbol "MCU_Module:Arduino_Mega_2560_PinHeader"
+		(symbol "MCU_Module:Arduino_Mega_2560_PinHeader_Conn"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -53,7 +53,7 @@
 					(hide yes)
 				)
 			)
-			(symbol "Arduino_Mega_2560_PinHeader_1_1"
+			(symbol "Arduino_Mega_2560_PinHeader_Conn_1_1"
 				(rectangle
 					(start -2.54 22.86)
 					(end 2.54 -22.86)
@@ -65,7 +65,7 @@
 						(type background)
 					)
 				)
-				(pin power_out inverted
+				(pin power_out line
 					(at -2.54 21.59 180)
 					(length 6.096)
 					(name ""
@@ -83,7 +83,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 19.05 180)
 					(length 6.096)
 					(name ""
@@ -101,7 +101,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 16.51 180)
 					(length 6.096)
 					(name ""
@@ -119,7 +119,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 13.97 180)
 					(length 6.096)
 					(name ""
@@ -137,7 +137,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 11.43 180)
 					(length 6.096)
 					(name ""
@@ -155,7 +155,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 8.89 180)
 					(length 6.096)
 					(name ""
@@ -173,7 +173,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 6.35 180)
 					(length 6.096)
 					(name ""
@@ -191,7 +191,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 3.81 180)
 					(length 6.096)
 					(name ""
@@ -209,7 +209,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 1.27 180)
 					(length 6.096)
 					(name ""
@@ -227,7 +227,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 -1.27 180)
 					(length 6.096)
 					(name ""
@@ -245,7 +245,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 -3.81 180)
 					(length 6.096)
 					(name ""
@@ -263,7 +263,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 -6.35 180)
 					(length 6.096)
 					(name ""
@@ -281,7 +281,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 -8.89 180)
 					(length 6.096)
 					(name ""
@@ -299,7 +299,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at -2.54 -11.43 180)
 					(length 6.096)
 					(name ""
@@ -461,7 +461,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 11.43 0)
 					(length 6.096)
 					(name ""
@@ -479,7 +479,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 8.89 0)
 					(length 6.096)
 					(name ""
@@ -497,7 +497,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 6.35 0)
 					(length 6.096)
 					(name ""
@@ -515,7 +515,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 3.81 0)
 					(length 6.096)
 					(name ""
@@ -533,7 +533,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 1.27 0)
 					(length 6.096)
 					(name ""
@@ -551,7 +551,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -1.27 0)
 					(length 6.096)
 					(name ""
@@ -569,7 +569,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -3.81 0)
 					(length 6.096)
 					(name ""
@@ -587,7 +587,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -6.35 0)
 					(length 6.096)
 					(name ""
@@ -605,7 +605,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -8.89 0)
 					(length 6.096)
 					(name ""
@@ -623,7 +623,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -11.43 0)
 					(length 6.096)
 					(name ""
@@ -641,7 +641,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -13.97 0)
 					(length 6.096)
 					(name ""
@@ -659,7 +659,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -16.51 0)
 					(length 6.096)
 					(name ""
@@ -677,7 +677,7 @@
 						)
 					)
 				)
-				(pin passive inverted
+				(pin passive line
 					(at 2.54 -19.05 0)
 					(length 6.096)
 					(name ""
@@ -695,7 +695,7 @@
 						)
 					)
 				)
-				(pin power_in inverted
+				(pin power_in line
 					(at 2.54 -21.59 0)
 					(length 6.096)
 					(name ""
@@ -2125,177 +2125,6 @@
 		(uuid "f8f71b7b-7be9-41e4-9e83-ba0d2ede4a65")
 	)
 	(symbol
-		(lib_id "MCU_Module:Arduino_Mega_2560_PinHeader")
-		(at 99.06 67.31 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "27095028-2a56-44bd-87ae-bffe29888ce5")
-		(property "Reference" "ArduinoMega-PinHeader"
-			(at 99.06 67.564 90)
-			(do_not_autoplace yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Connector"
-			(at 99.06 41.91 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 99.06 67.31 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 99.06 67.31 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" ""
-			(at 99.06 67.31 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "34"
-			(uuid "c140386c-6296-4817-bbeb-6e6af4a00b2b")
-		)
-		(pin "52"
-			(uuid "9c543b6c-e518-4d58-95ff-35e27c949abf")
-		)
-		(pin "50"
-			(uuid "0b23099d-c7b1-4174-a6d3-190cc90f0a3b")
-		)
-		(pin "48"
-			(uuid "223dceab-33db-46b3-9793-cb0fa0e6a054")
-		)
-		(pin "28"
-			(uuid "f27711ac-8596-41dd-b9f6-6158ff6c7ea9")
-		)
-		(pin "30"
-			(uuid "e1ae81ac-4fd5-42cc-87ec-c96772bc7608")
-		)
-		(pin "26"
-			(uuid "bf9e6d64-ebc6-4e89-8a0e-ff281ce0b776")
-		)
-		(pin "51"
-			(uuid "c9995b0a-336b-4bd1-8801-a7aeb3b8d8c5")
-		)
-		(pin "22"
-			(uuid "30934a51-c3ea-496c-b786-32077d641c02")
-		)
-		(pin "5V"
-			(uuid "9a0f92b7-6ab4-4d75-ad06-328858b4d95d")
-		)
-		(pin "37"
-			(uuid "92531a67-ced0-41a2-8dc6-b7fcdfa82568")
-		)
-		(pin "GND"
-			(uuid "456b3510-4679-4974-b389-96bd7f4b038f")
-		)
-		(pin "24"
-			(uuid "9f483d86-9d35-4396-b15b-fa3adfd693fc")
-		)
-		(pin "49"
-			(uuid "9b472d71-573c-4e61-bfc2-b3f65e81a502")
-		)
-		(pin "44"
-			(uuid "af5bebef-e945-4798-a85e-b74d91ecd137")
-		)
-		(pin "42"
-			(uuid "d3212d01-8abd-4791-8478-bc052f8e88f7")
-		)
-		(pin "39"
-			(uuid "09b89403-7aa9-4261-8db4-58827532ce97")
-		)
-		(pin "5V"
-			(uuid "4463c25b-6594-4e0f-89d5-44355b6b915d")
-		)
-		(pin "25"
-			(uuid "83bd9141-95ee-4276-ae43-41f4f3971d54")
-		)
-		(pin "33"
-			(uuid "411b8381-76e7-473f-ba93-7c53813d33e1")
-		)
-		(pin "31"
-			(uuid "7abd8070-4d20-4e4a-b6ff-df35e062cdc0")
-		)
-		(pin "27"
-			(uuid "1f13aec1-94be-4876-a3bc-0a7ccced1f92")
-		)
-		(pin "29"
-			(uuid "528b0ebc-762f-4180-a703-df04a2299bb1")
-		)
-		(pin "23"
-			(uuid "7e5418e4-d40c-49b8-a702-608f82d3cca1")
-		)
-		(pin "46"
-			(uuid "5e733bce-6813-42a4-90d6-979f43412b07")
-		)
-		(pin "43"
-			(uuid "3464351d-7008-44ff-8e6b-ee9c24dc2364")
-		)
-		(pin "41"
-			(uuid "26583554-6108-4f0e-a145-e1239dc74627")
-		)
-		(pin "35"
-			(uuid "73add81c-d799-47b2-aeca-eff3c8f97b64")
-		)
-		(pin "53"
-			(uuid "25c3f05f-7c29-4ced-a6bc-ef8adf0bc9fe")
-		)
-		(pin "36"
-			(uuid "d1c15021-f318-45b5-ad9a-0c3080139033")
-		)
-		(pin "40"
-			(uuid "5de7745f-f437-4898-8031-4028299f7338")
-		)
-		(pin "38"
-			(uuid "c02653b3-19a2-45dd-8554-231ac8fc38d2")
-		)
-		(pin "GND"
-			(uuid "ee73bdda-efb3-4a60-b2d1-3b2dad9d64ea")
-		)
-		(pin "32"
-			(uuid "49b4f302-3b2a-41f2-90ce-7e80795b3ccc")
-		)
-		(pin "45"
-			(uuid "1d3827a9-3689-4a6e-a54d-270a496f4313")
-		)
-		(pin "47"
-			(uuid "2e682bae-ca12-4cef-bb39-89f86e5bf15f")
-		)
-		(instances
-			(project ""
-				(path "/758b2bf2-b8e4-4334-80c5-ff5056cbce48"
-					(reference "ArduinoMega-PinHeader")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Memory_EEPROM:AT28C64")
 		(at 144.78 72.39 0)
 		(unit 1)
@@ -2437,6 +2266,177 @@
 			(project ""
 				(path "/758b2bf2-b8e4-4334-80c5-ff5056cbce48"
 					(reference "AT28C64")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "MCU_Module:Arduino_Mega_2560_PinHeader_Conn")
+		(at 99.06 67.31 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "d66635e2-7b4d-4736-b21b-0149e9d29fe9")
+		(property "Reference" "ArduinoMega–PinHeader"
+			(at 99.06 67.564 90)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "Connector"
+			(at 99.06 41.91 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 99.06 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 99.06 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 99.06 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "46"
+			(uuid "f9c2a1b1-29ef-49a6-9f1a-106ec95981bf")
+		)
+		(pin "48"
+			(uuid "fd8c8143-260a-46b6-9215-857c1ca17d7d")
+		)
+		(pin "42"
+			(uuid "5748d96b-26c4-4e9e-9fad-535b1470e6eb")
+		)
+		(pin "44"
+			(uuid "306e78ff-89dd-4c34-bb3c-63d5afdd3062")
+		)
+		(pin "52"
+			(uuid "e81263d3-1aa9-46c2-ba6e-2b7a44d65f88")
+		)
+		(pin "39"
+			(uuid "e6e26352-5194-4374-993e-d6d02514dc5c")
+		)
+		(pin "22"
+			(uuid "21783a65-60d8-474d-ae9f-f77640b6bfaa")
+		)
+		(pin "5V"
+			(uuid "fb6afcb7-f3b1-4939-a030-17625ce23045")
+		)
+		(pin "45"
+			(uuid "f6598e80-f248-4d0e-b910-6dde26fbae75")
+		)
+		(pin "51"
+			(uuid "30968958-479d-49ae-992d-93094a59fd57")
+		)
+		(pin "31"
+			(uuid "35bd613c-8280-4fdb-ac2e-020587d6fcfa")
+		)
+		(pin "40"
+			(uuid "92db8d0c-afcc-44f4-a6a1-6ef1df7276a8")
+		)
+		(pin "5V"
+			(uuid "2f24dd50-0987-46d5-94e3-f3eb0c4a17d2")
+		)
+		(pin "GND"
+			(uuid "58063540-68b0-4f76-bb0b-989c40d14361")
+		)
+		(pin "GND"
+			(uuid "e2b302c7-6688-4698-9632-4a036b03112a")
+		)
+		(pin "23"
+			(uuid "0c32c208-c8f3-416f-bfa7-4bbcd2514922")
+		)
+		(pin "27"
+			(uuid "0300f169-ba45-4f33-81f2-9bb7c12a3abd")
+		)
+		(pin "43"
+			(uuid "b0db4573-6b7e-4d01-97d8-34eecd3070d7")
+		)
+		(pin "35"
+			(uuid "ab933b7b-4b4a-4aea-a06b-a8ae860d3c89")
+		)
+		(pin "33"
+			(uuid "96cd4325-731a-4a7d-b925-47406656e179")
+		)
+		(pin "50"
+			(uuid "712e64f5-d677-4202-afc0-380d6fe6d41f")
+		)
+		(pin "25"
+			(uuid "3a0863d1-ae28-4dff-a77f-234965e8346f")
+		)
+		(pin "29"
+			(uuid "98cacefe-492d-4be3-b320-330eb47f860c")
+		)
+		(pin "53"
+			(uuid "fb923ed4-c9d4-4685-a5d8-6a487d14c2e3")
+		)
+		(pin "49"
+			(uuid "fb3e5150-7c72-45b4-920f-3b120d7fee82")
+		)
+		(pin "38"
+			(uuid "0bd65ed9-c31d-4b21-9d3d-07c1a3fc33df")
+		)
+		(pin "30"
+			(uuid "30cf9b45-ae36-4d6b-8f92-234e6eafed38")
+		)
+		(pin "34"
+			(uuid "5a435da2-d42e-4394-b74a-298bc70f2b0a")
+		)
+		(pin "28"
+			(uuid "8385ac8b-e6c2-4a68-b569-16cf2504b577")
+		)
+		(pin "36"
+			(uuid "5d4f2c97-5e31-4c2d-b9d6-6b18ccd9f3fa")
+		)
+		(pin "26"
+			(uuid "9568a3b0-ef23-41e5-a0e8-ff91202359b1")
+		)
+		(pin "32"
+			(uuid "60108b81-1a2f-4b94-a49c-ec3c6b943607")
+		)
+		(pin "24"
+			(uuid "c5413cd3-54b5-485e-9e80-94f22ff4f8b4")
+		)
+		(pin "47"
+			(uuid "6c2fe825-1e09-4054-8a11-49150270f34d")
+		)
+		(pin "37"
+			(uuid "36fcf72a-061c-4b29-ae69-5ebaacd3b410")
+		)
+		(pin "41"
+			(uuid "f492e1bd-7c87-41a8-b0d5-94f996fd1cf8")
+		)
+		(instances
+			(project ""
+				(path "/758b2bf2-b8e4-4334-80c5-ff5056cbce48"
+					(reference "ArduinoMega–PinHeader")
 					(unit 1)
 				)
 			)
