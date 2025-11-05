@@ -10,6 +10,9 @@
 
 [Debugging the EEPROM Programmer](https://goose.sh/blog/debugging-eeprom-api/)
 
+## Wiring Diagram
+
+![Wiring Diagram: Arduino Mega and AT28C64](diagram/arduino-mega-at28c64.png)
 
 ## EEPROM Programmer on Arduino
 
