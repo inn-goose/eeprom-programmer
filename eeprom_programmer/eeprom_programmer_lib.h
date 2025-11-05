@@ -1,7 +1,7 @@
 // TODO: https://docs.arduino.cc/learn/contributions/arduino-creating-library-guide/
 
-#ifndef __eeprom_28c64_api_h__
-#define __eeprom_28c64_api_h__
+#ifndef __eeprom_programmer_lib_h__
+#define __eeprom_programmer_lib_h__
 
 // #define _EEPROM_DEBUG_LOGGING
 #ifdef _EEPROM_DEBUG_LOGGING
@@ -12,7 +12,7 @@
 #define _debugPrintln(log)
 #endif  // _EEPROM_DEBUG_LOGGING
 
-namespace EepromApiLibrary {
+namespace EepromProgrammerLibrary {
 
 // Error Codes
 
@@ -32,11 +32,11 @@ enum ErrorCode : int {
 };
 
 
-// EEPROM API
+// EEPROM Programmer
 
-class EepromApi {
+class EepromProgrammer {
 public:
-  EepromApi(
+  EepromProgrammer(
     // address
     const uint8_t* addressPins,
     // data
@@ -168,7 +168,7 @@ private:
   }
 };
 
-EepromApi::EepromApi(
+EepromProgrammer::EepromProgrammer(
   // address
   const uint8_t* addressPins,
   // data
@@ -208,23 +208,23 @@ EepromApi::EepromApi(
   _busyStateUsec = 0;
 }
 
-void EepromApi::_changeDataPinsMode(const EepromApi::_DataPinsMode mode) {
-  if (mode == EepromApi::_DataPinsMode::DATA_PINS_READ) {
+void EepromProgrammer::_changeDataPinsMode(const EepromProgrammer::_DataPinsMode mode) {
+  if (mode == EepromProgrammer::_DataPinsMode::DATA_PINS_READ) {
     for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
       pinMode(_dataPins[i], INPUT_PULLUP);
     }
 
-  } else if (mode == EepromApi::_DataPinsMode::DATA_PINS_WRITE) {
+  } else if (mode == EepromProgrammer::_DataPinsMode::DATA_PINS_WRITE) {
     for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
       pinMode(_dataPins[i], OUTPUT);
     }
   }
 }
 
-void EepromApi::init_api() {
+void EepromProgrammer::init_api() {
 }
 
-ErrorCode EepromApi::init_chip(const String& chip_type) {
+ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   if (_chip_is_ready) {
     return ErrorCode::ALREADY_INITIALIZED;
   }
@@ -271,7 +271,7 @@ ErrorCode EepromApi::init_chip(const String& chip_type) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::set_read_mode(const int page_size_bytes) {
+ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -294,7 +294,7 @@ ErrorCode EepromApi::set_read_mode(const int page_size_bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::read_page(const int page_no, uint8_t* bytes) {
+ErrorCode EepromProgrammer::read_page(const int page_no, uint8_t* bytes) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -319,7 +319,7 @@ ErrorCode EepromApi::read_page(const int page_no, uint8_t* bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::read_byte(const uint16_t address, uint8_t &byte) {
+ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -377,7 +377,7 @@ ErrorCode EepromApi::read_byte(const uint16_t address, uint8_t &byte) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::set_write_mode(const int page_size_bytes) {
+ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -401,7 +401,7 @@ ErrorCode EepromApi::set_write_mode(const int page_size_bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::write_page(const int page_no, const uint8_t* bytes) {
+ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -424,7 +424,7 @@ ErrorCode EepromApi::write_page(const int page_no, const uint8_t* bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromApi::write_byte(const uint16_t address, const uint8_t data) {
+ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t data) {
   if (!_chip_is_ready) {
     return ErrorCode::NOT_INITIALIZED;
   }
@@ -509,6 +509,6 @@ ErrorCode EepromApi::write_byte(const uint16_t address, const uint8_t data) {
   return ErrorCode::SUCCESS;
 }
 
-}  // EepromApiLibrary
+}  // EepromProgrammerLibrary
 
-#endif  // !__eeprom_28c64_api_h__
+#endif  // !__eeprom_programmer_lib_h__

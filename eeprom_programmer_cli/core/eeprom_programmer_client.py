@@ -3,11 +3,11 @@ from typing import List
 from serial_json_rpc import client
 
 
-class EepromApiClientError(Exception):
+class EepromProgrammerClientError(Exception):
     pass
 
 
-class EepromApiClient:
+class EepromProgrammerClient:
     _EEPROM_CHIP_SETTINGS = {
         "AT28C64": {
             "memory_size": 8192,
@@ -20,12 +20,12 @@ class EepromApiClient:
     @classmethod
     def _get_eeprom_chip_settings(cls, chip_type: str):
         if not chip_type:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 "failed to read data, chip_type is unknown")
 
         chip_type = chip_type.upper()
         if chip_type not in cls._EEPROM_CHIP_SETTINGS:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 f"unsupported EEPROM type: {chip_type}")
 
         return cls._EEPROM_CHIP_SETTINGS[chip_type]
@@ -50,7 +50,7 @@ class EepromApiClient:
             res = json_rpc_client.send_request("init_chip", [chip_type])
             print(f"init_chip: {res}")
         except Exception as ex:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 f"failed to init {chip_type} chip with: {ex}")
         
     @classmethod
@@ -59,7 +59,7 @@ class EepromApiClient:
             res = json_rpc_client.send_request("set_read_mode", [page_size])
             print(f"set_read_mode: {res}")
         except Exception as ex:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 f"failed to set READ mode with: {ex}")
 
     @classmethod
@@ -85,7 +85,7 @@ class EepromApiClient:
     @classmethod
     def read_data_to_file(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str, file_path: str):
         if not file_path:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 "failed to read data, file_path is empty")
 
         read_data = cls._read_data(json_rpc_client, chip_type)
@@ -99,7 +99,7 @@ class EepromApiClient:
             res = json_rpc_client.send_request("set_write_mode", [page_size])
             print(f"set_write_mode: {res}")
         except Exception as ex:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 f"failed to set WRITE mode with: {ex}")
         
     @classmethod
@@ -127,7 +127,7 @@ class EepromApiClient:
     @classmethod
     def erase_data(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str, erase_pattern: int):
         if erase_pattern < 0 or erase_pattern > 255:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 f"failed to erase data, invalid pattern: {erase_pattern}")
 
         chip_settings = cls._get_eeprom_chip_settings(chip_type)
@@ -139,20 +139,20 @@ class EepromApiClient:
     @classmethod
     def write_data_to_file(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str, file_path: str):
         if not file_path:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 "failed to write data, file_path is empty")
         
         write_data = None
         with open(file_path, "rb") as f:
             write_data = bytes(f.read())
         if not write_data:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 "failed to write data, source is empty")
 
         chip_settings = cls._get_eeprom_chip_settings(chip_type)
         memory_size = chip_settings["memory_size"]
         if len(write_data) > memory_size:
-            raise EepromApiClientError(
+            raise EepromProgrammerClientError(
                 "failed to write data, source is bigger than the chip memory size")
         
         if len(write_data) < memory_size:

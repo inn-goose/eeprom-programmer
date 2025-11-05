@@ -1,14 +1,14 @@
 #include "eeprom_wiring.h"
-#include "eeprom_api.h"
-#include "serial_json_rpc.h"
+#include "eeprom_programmer_lib.h"
+#include "serial_json_rpc_lib.h"
 
-using namespace EepromApiLibrary;
+using namespace EepromProgrammerLibrary;
 using namespace SerialJsonRpcLibrary;
 
 
 // EEPROM API
 
-static EepromApi eeprom_api(
+static EepromProgrammer eeprom_api(
   // address
   EEPROM_ADDRESS_PINS,
   // data

@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from core import eeprom_api_client
+from core import eeprom_programmer_client
 from serial_json_rpc import client
 
 
@@ -42,7 +42,7 @@ def cli() -> int:
                 file_path = args.read
             print(f"read data to {file_path}")
             try:
-                eeprom_api_client.EepromApiClient.read_data_to_file(json_rpc_client, args.device, file_path)
+                eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, args.device, file_path)
             except Exception as ex:
                 print(f"failed to read data with: {str(ex)}")
                 return 1
@@ -57,7 +57,7 @@ def cli() -> int:
             print(f"invalid erase pattern {args.erase}, should be a HEX value")
             return 1
         try:
-            eeprom_api_client.EepromApiClient.erase_data(json_rpc_client, args.device, erase_pattern)
+            eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, args.device, erase_pattern)
         except Exception as ex:
             print(f"failed to erase chip with: {str(ex)}")
             return 1
@@ -70,7 +70,7 @@ def cli() -> int:
                 file_path = args.write
             print(f"write data to {file_path}")
             try:
-                eeprom_api_client.EepromApiClient.write_data_to_file(json_rpc_client, args.device, file_path)
+                eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, args.device, file_path)
             except Exception as ex:
                 print(f"failed to write data with: {str(ex)}")
                 return 1

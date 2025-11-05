@@ -103,7 +103,9 @@ deactivate
 ### Usage
 
 ```bash
-python -m serial.tools.list_ports
+source venv/bin/activate
+
+python3 -m serial.tools.list_ports
 ...
 /dev/cu.usbmodem2101
 ```
