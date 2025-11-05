@@ -51,7 +51,7 @@ public:
     const uint8_t* nonConnectedPins);
 
   // init
-  void init_api();
+  void init_programmer();
   ErrorCode init_chip(const String& chip_type);
   inline int get_page_size_bytes() {
     return _page_size_bytes;
@@ -221,7 +221,7 @@ void EepromProgrammer::_changeDataPinsMode(const EepromProgrammer::_DataPinsMode
   }
 }
 
-void EepromProgrammer::init_api() {
+void EepromProgrammer::init_programmer() {
 }
 
 ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
@@ -338,7 +338,7 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
   _addressToBitsArray(address, bAddress);
 
   // (1) set address
-  _debugPrint("(API) R [" + String(address) + "] | addr[LSB]: b");
+  _debugPrint("(PROGR) R [" + String(address) + "] | addr[LSB]: b");
   for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
     digitalWrite(_addressPins[i], bAddress[i]);
     _debugPrint(bAddress[i]);
@@ -444,7 +444,7 @@ ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t dat
   _dataToBitsArray(data, bData);
 
   // (1) set address
-  _debugPrint("(API) W [" + String(address) + "] | addr: b");
+  _debugPrint("(PROGR) W [" + String(address) + "] | addr: b");
   for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
     digitalWrite(_addressPins[i], bAddress[i]);
     _debugPrint(bAddress[i]);

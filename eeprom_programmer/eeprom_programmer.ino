@@ -6,9 +6,9 @@ using namespace EepromProgrammerLibrary;
 using namespace SerialJsonRpcLibrary;
 
 
-// EEPROM API
+// EEPROM Programmer
 
-static EepromProgrammer eeprom_api(
+static EepromProgrammer eeprom_programmer(
   // address
   EEPROM_ADDRESS_PINS,
   // data
@@ -35,7 +35,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     String chip_type = params[0];
 
-    ErrorCode code = eeprom_api.init_chip(chip_type);
+    ErrorCode code = eeprom_programmer.init_chip(chip_type);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 50;
       char error_data_buf[error_data_buf_size];
@@ -56,7 +56,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int read_page_size_bytes = atoi(params[0].c_str());
 
-    ErrorCode code = eeprom_api.set_read_mode(read_page_size_bytes);
+    ErrorCode code = eeprom_programmer.set_read_mode(read_page_size_bytes);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 70;
       char error_data_buf[error_data_buf_size];
@@ -77,10 +77,10 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_api.get_page_size_bytes();
+    const int buffer_size = eeprom_programmer.get_page_size_bytes();
     uint8_t buffer[buffer_size];
 
-    ErrorCode code = eeprom_api.read_page(page_no, buffer);
+    ErrorCode code = eeprom_programmer.read_page(page_no, buffer);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 70;
       char error_data_buf[error_data_buf_size];
@@ -98,7 +98,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int write_page_size_bytes = atoi(params[0].c_str());
 
-    ErrorCode code = eeprom_api.set_write_mode(write_page_size_bytes);
+    ErrorCode code = eeprom_programmer.set_write_mode(write_page_size_bytes);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 70;
       char error_data_buf[error_data_buf_size];
@@ -119,11 +119,11 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_api.get_page_size_bytes();
+    const int buffer_size = eeprom_programmer.get_page_size_bytes();
     uint8_t buffer[buffer_size];
     SerialJsonRpcBoard::json_array_to_byte_array(params[1], buffer, buffer_size);
 
-    ErrorCode code = eeprom_api.write_page(page_no, buffer);
+    ErrorCode code = eeprom_programmer.write_page(page_no, buffer);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 70;
       char error_data_buf[error_data_buf_size];
@@ -148,8 +148,8 @@ void rpc_processor(int request_id, const String &method, const String params[], 
 void setup() {
   // rpc board
   rpc_board.init();
-  // eeprom api
-  eeprom_api.init_api();
+  // eeprom programmer
+  eeprom_programmer.init_programmer();
 }
 
 void loop() {
