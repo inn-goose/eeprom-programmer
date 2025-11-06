@@ -2281,7 +2281,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "fc5846ef-506d-4e4d-bc1d-3fe20204d59d")
-		(property "Reference" "ArduinoMega-PinHeader"
+		(property "Reference" "PinHeader"
 			(at 100.33 64.77 90)
 			(do_not_autoplace yes)
 			(effects
@@ -2290,7 +2290,7 @@
 				)
 			)
 		)
-		(property "Value" "Connector"
+		(property "Value" "Arduino Mega"
 			(at 100.33 39.37 0)
 			(effects
 				(font
@@ -2436,7 +2436,7 @@
 		(instances
 			(project ""
 				(path "/758b2bf2-b8e4-4334-80c5-ff5056cbce48"
-					(reference "ArduinoMega-PinHeader")
+					(reference "PinHeader")
 					(unit 1)
 				)
 			)
