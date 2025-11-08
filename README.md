@@ -1,6 +1,7 @@
 # EEPROM Programmer
 
-> Note: this project concerns external EEPROM chips, not the built-in Arduino EEPROM memory.
+> [!IMPORTANT]
+> Note, that this project concerns **external** EEPROM chips, not the built-in Arduino EEPROM memory.
 
 ## TLDR
 
