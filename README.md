@@ -137,7 +137,7 @@ xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
 source venv/bin/activate
 
 # erase with FF pattern
-PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase ff
+PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase
 ```
 
 #### write
@@ -152,14 +152,16 @@ PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/
 
 ## XGecu Programmer as a Reference
 
+Use the [`minipro`](https://formulae.brew.sh/formula/minipro) utility to perform read and write operations with the XGecu programmer
+
 ```bash
 brew install minipro
 
 # write the "real" dump to the chip
-minipro -p AT28C64 -s -u -w tmp/zenith_zt1_eeprom.bin
+minipro --device AT28C64 -s -u --write tmp/zenith_zt1_eeprom.bin
 
 # read the data
-minipro -p AT28C64 -u -r tmp/dump_xgecu.bin
+minipro --device AT28C64 -u --read tmp/dump_xgecu.bin
 
 # convert to HEX
 xxd tmp/dump_xgecu.bin > tmp/dump_xgecu.hex

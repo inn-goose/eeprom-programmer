@@ -1,5 +1,6 @@
 import argparse
 import sys
+import time
 
 from core import eeprom_programmer_client
 from serial_json_rpc import client
@@ -23,7 +24,7 @@ def cli() -> int:
     parser.add_argument("-p", "--device", type=str, required=True)
     parser.add_argument("-r", "--read", type=str, required=False)
     parser.add_argument("-w", "--write", type=str, required=False)
-    parser.add_argument("--erase", type=str, required=False)
+    parser.add_argument("--erase", action="store_true", required=False)
     parser.add_argument("--attempts", type=int, default=1)
     args = parser.parse_args()
 
@@ -42,22 +43,21 @@ def cli() -> int:
                 file_path = args.read
             print(f"read data to {file_path}")
             try:
+                ts = time.time()
                 eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, args.device, file_path)
+                elapsed = time.time() - ts
+                print(f"reading data: success, {elapsed:.02f} sec")
             except Exception as ex:
                 print(f"failed to read data with: {str(ex)}")
                 return 1
 
     elif args.erase is not None:
         try:
-            erase_pattern = int(args.erase, 16)
-            if erase_pattern < 0 or erase_pattern > 255:
-                print(f"invalid erase pattern {args.erase}, should be within [0, 255] range")
-                return 1
-        except Exception:
-            print(f"invalid erase pattern {args.erase}, should be a HEX value")
-            return 1
-        try:
+            ts = time.time()
+            erase_pattern = 255  # FF
             eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, args.device, erase_pattern)
+            elapsed = time.time() - ts
+            print(f"erasing data: success, {elapsed:.02f} sec")
         except Exception as ex:
             print(f"failed to erase chip with: {str(ex)}")
             return 1
@@ -70,7 +70,10 @@ def cli() -> int:
                 file_path = args.write
             print(f"write data to {file_path}")
             try:
+                ts = time.time()
                 eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, args.device, file_path)
+                elapsed = time.time() - ts
+                print(f"writing data: success, {elapsed:.02f} sec")
             except Exception as ex:
                 print(f"failed to write data with: {str(ex)}")
                 return 1
