@@ -127,9 +127,10 @@ curl -LJ --output tmp/zenith_zt1_eeprom.bin "https://github.com/misterblack1/zen
 
 ```bash
 source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # read data from file
-PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
 
 # convert to HEX
 xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
@@ -139,18 +140,20 @@ xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
 
 ```bash
 source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # erase with FF pattern
-PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase
 ```
 
 #### write
 
 ```bash
 source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # write data from file
-PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
 ```
 
 
@@ -181,11 +184,14 @@ vimdiff tmp/dump_eeprom.hex tmp/dump_xgecu.hex
 ### Read Noise
 
 ```bash
+source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
+
 # read w/o reset
-PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom.bin --attempts 3
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom.bin --attempts 3
 
 # read w/ reset
-for i in `seq 1 3`; do PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH python3 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_$i.bin; done
+for i in `seq 1 3`; do ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_$i.bin; done
 
 # convert to HEX
 for i in `seq 1 3`; do xxd tmp/dump_eeprom_$i.bin > tmp/dump_eeprom_$i.hex; done
