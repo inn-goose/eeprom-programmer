@@ -9,10 +9,6 @@ using namespace EepromProgrammerWiring;
 
 namespace EepromProgrammerLibrary {
 
-// TODO: remove HACK
-const uint8_t __EEPROM_DATA_PINS[8] = { 49, 51, 53, 46, 44, 42, 40, 38 };
-
-
 // Error Codes
 
 enum ErrorCode : int {
@@ -43,11 +39,7 @@ enum ErrorCode : int {
 
 class EepromProgrammer {
 public:
-  EepromProgrammer(
-    // wiring type
-    const WiringType wiring_type,
-    // TODO: remove HACK
-    const uint8_t* dataPins);
+  EepromProgrammer(const WiringType wiring_type);
 
   // init
   ErrorCode init_programmer();
@@ -100,7 +92,6 @@ public:
   }
 
 private:
-  static const int _EEPROM_28C64_DATA_BUS_SIZE = 8;
   static const int _MAX_PAGE_SIZE = 64;
 
   // tune this constant if write is not working
@@ -127,8 +118,6 @@ private:
   // data bus
   PIN_NO _data_bus_pins[WiringController::MAX_DATA_BUS_SIZE];
   size_t _data_bus_size;
-  // TODO: remove HACK
-  uint8_t _dataPins[_EEPROM_28C64_DATA_BUS_SIZE];
   // management
   PIN_NO _chip_enable_pin;    // !CE
   PIN_NO _output_enable_pin;  // !OE
@@ -188,15 +177,8 @@ private:
   }
 };
 
-EepromProgrammer::EepromProgrammer(
-  // wiring type
-  const WiringType wiring_type,
-  // TODO: remove HACK
-  const uint8_t* dataPins)
+EepromProgrammer::EepromProgrammer(const WiringType wiring_type)
   : _wiring_controller(wiring_type) {
-
-  // TODO: remove HACK
-  memcpy(_dataPins, __EEPROM_DATA_PINS, 8);
 
   // inner
   _pins_initialized = false;
