@@ -1,3 +1,6 @@
+#ifndef __serial_json_rpc_lib_h__
+#define __serial_json_rpc_lib_h__
+
 #include <ArduinoJson.h>
 
 namespace SerialJsonRpcLibrary {
@@ -198,3 +201,5 @@ void SerialJsonRpcBoard::_send_response(const DynamicJsonDocument &response) {
 }
 
 }
+
+#endif  // !__serial_json_rpc_lib_h__
