@@ -88,7 +88,7 @@ Arduino IDE's *Serial Monitor* on `115200` baud
 ## EEPROM Programmer python CLI
 
 > [!CAUTION]
-> During read operations with the EEPROM Programmer, the chip's `!WE` pin **MUST** be connected to `VCC` using a jumper wire to disable the write mode. Otherwise, invoking the CLI may corrupt data on the chip due to Arduino's internal behavior.
+> During read operations with the EEPROM Programmer, the chip's `!WE` pin **MUST** be connected to `VCC` using a jumper wire to disable the write mode. Otherwise, invoking the CLI may corrupt data on the chip due to Arduino's internal behavior. [Details](https://goose.sh/blog/eeprom-programmer-5-data-corruption/)
 
 Uses the [Serial JSON RPC](https://github.com/inn-goose/serial-json-rpc-arduino) interface.
 
