@@ -42,8 +42,6 @@ public:
   EepromProgrammer(
     // wiring type
     const WiringType wiring_type,
-    // address
-    const uint8_t* addressPins,
     // data
     const uint8_t* dataPins,
     // control
@@ -106,7 +104,6 @@ public:
   }
 
 private:
-  static const int _EEPROM_28C64_ADDRRESS_BUS_SIZE = 13;
   static const int _EEPROM_28C64_DATA_BUS_SIZE = 8;
   static const int _MAX_PAGE_SIZE = 64;
 
@@ -128,8 +125,9 @@ private:
   WiringController _wiring_controller;
 
   // PINS
-  // address
-  uint8_t _addressPins[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
+  // address bus
+  PIN_NO _address_bus_pins[WiringController::MAX_ADDRESS_BUS_SIZE];
+  size_t _address_bus_size;
   // data
   uint8_t _dataPins[_EEPROM_28C64_DATA_BUS_SIZE];
   // control
@@ -199,8 +197,6 @@ private:
 EepromProgrammer::EepromProgrammer(
   // wiring type
   const WiringType wiring_type,
-  // address
-  const uint8_t* addressPins,
   // data
   const uint8_t* dataPins,
   // control
@@ -212,8 +208,6 @@ EepromProgrammer::EepromProgrammer(
   // non-connected
   const uint8_t* nonConnectedPins)
   : _wiring_controller(wiring_type) {
-  // address
-  memcpy(_addressPins, addressPins, _EEPROM_28C64_ADDRRESS_BUS_SIZE);
   // data
   memcpy(_dataPins, dataPins, _EEPROM_28C64_DATA_BUS_SIZE);
   // control
@@ -245,8 +239,8 @@ EepromProgrammer::EepromProgrammer(
 }
 
 void EepromProgrammer::_setAddressBusMode() {
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    pinMode(_addressPins[i], OUTPUT);
+  for (int i = 0; i < _address_bus_size; i++) {
+    pinMode(_address_bus_pins[i], OUTPUT);
   }
 }
 
@@ -264,10 +258,11 @@ void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode
 }
 
 void EepromProgrammer::_writeAddress(const uint32_t address) {
-  bool b_address[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
-  _addressToBitsArray(address, b_address, _EEPROM_28C64_ADDRRESS_BUS_SIZE);
-  for (int i = 0; i < _EEPROM_28C64_ADDRRESS_BUS_SIZE; i++) {
-    digitalWrite(_addressPins[i], b_address[i]);
+  const size_t c_address_bus_size = _address_bus_size;
+  bool b_address[c_address_bus_size];
+  _addressToBitsArray(address, b_address, c_address_bus_size);
+  for (int i = 0; i < c_address_bus_size; i++) {
+    digitalWrite(_address_bus_pins[i], b_address[i]);
   }
 }
 
@@ -320,6 +315,13 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   if (_wiring_controller.get_chip_type() == ChipType::UNKNOWN) {
     return ErrorCode::CHIP_NOT_SUPPORTED;
   }
+
+  // address bus
+  _address_bus_size = _wiring_controller.get_address_bus_pins(_address_bus_pins, WiringController::MAX_ADDRESS_BUS_SIZE);
+  if (_address_bus_size <= 0) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  _memory_size_bytes = pow(2, _address_bus_size);
 
   String _chip_type = chip_type;
 

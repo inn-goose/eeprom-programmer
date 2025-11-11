@@ -189,6 +189,22 @@ vimdiff tmp/dump_eeprom.hex tmp/dump_xgecu.hex
 
 ## Tests
 
+### W/R Cycle
+
+```bash
+source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
+
+# >> remove jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --erase-pattern BB
+
+# >> add jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
+
+xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
+vimdiff tmp/zenith_zt1_eeprom.hex tmp/dump_eeprom.hex
+```
+
 ### Read Noise
 
 ```bash

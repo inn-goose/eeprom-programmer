@@ -12,8 +12,6 @@ using namespace SerialJsonRpcLibrary;
 static EepromProgrammer eeprom_programmer(
   // wiring type
   WiringType::DIP28,
-  // address
-  EEPROM_ADDRESS_PINS,
   // data
   EEPROM_DATA_PINS,
   // management
