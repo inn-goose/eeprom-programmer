@@ -73,7 +73,8 @@ Arduino IDE's *Serial Monitor* on `115200` baud
 ```json
 {"jsonrpc":"2.0", "id":0, "method": "init_chip", "params": ["AT28C64"]}
 {"jsonrpc":"2.0", "id":0, "method": "set_write_mode", "params": [4]}
-{"jsonrpc":"2.0", "id":0, "method": "write_page","params": [0, [127, 127, 127, 127]]}
+{"jsonrpc":"2.0", "id":0, "method": "write_page","params": [0, [120, 130, 140, 150]]}
+{"jsonrpc":"2.0", "id":0, "method": "write_page","params": [50, [20, 30, 40, 50]]}
 ```
 
 #### Read Operation Sequence
@@ -82,6 +83,7 @@ Arduino IDE's *Serial Monitor* on `115200` baud
 {"jsonrpc":"2.0", "id":0, "method": "init_chip", "params": ["AT28C64"]}
 {"jsonrpc":"2.0", "id":0, "method": "set_read_mode", "params": [4]}
 {"jsonrpc":"2.0", "id":0, "method": "read_page", "params": [0]}
+{"jsonrpc":"2.0", "id":0, "method": "read_page", "params": [50]}
 ```
 
 

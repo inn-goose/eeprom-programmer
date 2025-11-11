@@ -102,7 +102,8 @@ const PIN_NO DIP28_WIRING[28] = {
 namespace AT28C64_Wiring {
 static const size_t ADDRESS_BUS_SIZE = 13;
 static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
-// static const PIN_NO DATA_PINS[8] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+static const size_t DATA_BUS_SIZE = 8;
+static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18, 19 };
 // static const PIN_NO MANAGEMENT_PINS[4] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
 // static const PIN_NO NC_PINS[1] = { 26 };
 }
@@ -135,7 +136,8 @@ class AT28C256 {
 class WiringController {
 public:
   static const size_t MAX_BOARD_BUS_SIZE = 28;    // DIP28
-  static const size_t MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: AO to A14
+  static const size_t MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: A0 to A14
+  static const size_t MAX_DATA_BUS_SIZE = 8;  // AT28C256: I/O0 to I/O7
 
   WiringController(const WiringType wiring_type)
     : _wiring_type(wiring_type) {}
@@ -211,6 +213,45 @@ public:
       pins_array[i] = dip_wiring_mapping[address_bus_pins[i] - 1];
     }
     return address_bus_size;
+  }
+
+  size_t get_data_bus_pins(PIN_NO* pins_array, const size_t array_size) {
+    size_t data_bus_size = 0;
+    PIN_NO* data_bus_pins = 0;
+    PIN_NO* dip_wiring_mapping = 0;
+
+    switch (_wiring_type) {
+      case WiringType::DIP28:
+        dip_wiring_mapping = DIP28_WIRING;
+        switch (_chip_type) {
+          case ChipType::AT28C64:
+            data_bus_size = AT28C64_Wiring::DATA_BUS_SIZE;
+            data_bus_pins = AT28C64_Wiring::DATA_BUS_PINS;
+            break;
+          default:
+            break;
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (dip_wiring_mapping == 0) {
+      return -1;
+    }
+    if (data_bus_size == 0 || data_bus_pins == 0) {
+      return -1;
+    }
+    if (array_size < data_bus_size) {
+      return -1;
+    }
+
+    // mapping
+    for (size_t i = 0; i < data_bus_size; i++) {
+      // mapping starts from 0, but PIN numbers start from 1 for convenience
+      pins_array[i] = dip_wiring_mapping[data_bus_pins[i] - 1];
+    }
+    return data_bus_size;
   }
 
 private:

@@ -42,8 +42,6 @@ public:
   EepromProgrammer(
     // wiring type
     const WiringType wiring_type,
-    // data
-    const uint8_t* dataPins,
     // control
     const uint8_t chipEnablePin,
     const uint8_t outputEnablePin,
@@ -104,22 +102,21 @@ public:
   }
 
 private:
-  static const int _EEPROM_28C64_DATA_BUS_SIZE = 8;
   static const int _MAX_PAGE_SIZE = 64;
 
   // tune this constant if write is not working
   // if the waiting is insufficient, data propagation may be incomplete
   static const int _WRITE_SUCCESS_WAITING_TIME_USEC = 1.4 * 1000;
 
-  enum _DataPinsMode {
-    DATA_PINS_READ,
-    DATA_PINS_WRITE,
+  enum _DataBusMode {
+    READ,
+    WRITE,
   };
-  void _setAddressPinsMode();
-  void _setDataPinsMode(const _DataPinsMode mode);
-  void _writeAddressPins(const uint32_t address);
-  uint8_t _readDataPins();
-  void _writeDataPins(const uint8_t data);
+  void _setAddressBusMode();
+  void _setDataBusMode(const _DataBusMode mode);
+  void _writeAddress(const uint32_t address);
+  uint8_t _readData();
+  void _writeData(const uint8_t data);
 
   WiringController _wiring_controller;
 
@@ -128,7 +125,8 @@ private:
   PIN_NO _address_bus_pins[WiringController::MAX_ADDRESS_BUS_SIZE];
   size_t _address_bus_size;
   // data
-  uint8_t _dataPins[_EEPROM_28C64_DATA_BUS_SIZE];
+  PIN_NO _data_bus_pins[WiringController::MAX_DATA_BUS_SIZE];
+  size_t _data_bus_size;
   // control
   uint8_t _chipEnablePin;    // !CE
   uint8_t _outputEnablePin;  // !OE
@@ -173,21 +171,21 @@ private:
     }
   }
 
-  static void _dataToBitsArray(uint8_t data, bool* bitsArray) {
+  static void _dataToBitsArray(uint8_t data, bool* b_data, const size_t data_bus_size) {
     // MSB order
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
+    for (int i = 0; i < data_bus_size; i++) {
       // MSP order
-      // bitsArray[_EEPROM_28C64_DATA_BUS_SIZE - 1 - i] = bitRead(data, i);
+      // b_data[data_bus_size - 1 - i] = bitRead(data, i);
       // LSB order
-      bitsArray[i] = (data >> i) & 1;
+      b_data[i] = (data >> i) & 1;
     }
   }
 
-  static uint8_t _bitsArrayToData(bool* bitsArray) {
+  static uint8_t _bitsArrayToData(const bool* b_data, const size_t data_bus_size) {
     // MSB order
     uint8_t data = 0;
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      data = (data << 1) | bitsArray[_EEPROM_28C64_DATA_BUS_SIZE - 1 - i];
+    for (int i = 0; i < data_bus_size; i++) {
+      data = (data << 1) | b_data[data_bus_size - 1 - i];
     }
     return data;
   }
@@ -196,8 +194,6 @@ private:
 EepromProgrammer::EepromProgrammer(
   // wiring type
   const WiringType wiring_type,
-  // data
-  const uint8_t* dataPins,
   // control
   const uint8_t chipEnablePin,
   const uint8_t outputEnablePin,
@@ -207,8 +203,6 @@ EepromProgrammer::EepromProgrammer(
   // non-connected
   const uint8_t* nonConnectedPins)
   : _wiring_controller(wiring_type) {
-  // data
-  memcpy(_dataPins, dataPins, _EEPROM_28C64_DATA_BUS_SIZE);
   // control
   _chipEnablePin = chipEnablePin;
   _outputEnablePin = outputEnablePin;
@@ -237,48 +231,61 @@ EepromProgrammer::EepromProgrammer(
   _write_op_wait_cycles = -1;
 }
 
-void EepromProgrammer::_setAddressPinsMode() {
+void EepromProgrammer::_setAddressBusMode() {
   for (int i = 0; i < _address_bus_size; i++) {
     pinMode(_address_bus_pins[i], OUTPUT);
   }
 }
 
-void EepromProgrammer::_setDataPinsMode(const EepromProgrammer::_DataPinsMode mode) {
-  if (mode == EepromProgrammer::_DataPinsMode::DATA_PINS_READ) {
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      pinMode(_dataPins[i], INPUT_PULLUP);
+void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode) {
+  if (mode == EepromProgrammer::_DataBusMode::READ) {
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], INPUT_PULLUP);
     }
 
-  } else if (mode == EepromProgrammer::_DataPinsMode::DATA_PINS_WRITE) {
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      pinMode(_dataPins[i], OUTPUT);
+  } else if (mode == EepromProgrammer::_DataBusMode::WRITE) {
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], OUTPUT);
     }
   }
 }
 
-void EepromProgrammer::_writeAddressPins(const uint32_t address) {
+void EepromProgrammer::_writeAddress(const uint32_t address) {
+  Serial.print("[address] ");
+  Serial.print(address);
+  Serial.print(": ");
   const size_t address_bus_size = _address_bus_size;
   bool b_address[address_bus_size];
   _addressToBitsArray(address, b_address, address_bus_size);
   for (int i = 0; i < address_bus_size; i++) {
+    Serial.print(_address_bus_pins[i]);
+    Serial.print(" ");
     digitalWrite(_address_bus_pins[i], b_address[i]);
   }
+  Serial.println();
 }
 
-uint8_t EepromProgrammer::_readDataPins() {
-  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    bData[i] = digitalRead(_dataPins[i]) == HIGH ? 1 : 0;
+uint8_t EepromProgrammer::_readData() {
+  const size_t data_bus_size = _data_bus_size;
+  bool b_data[data_bus_size];
+  for (int i = 0; i < data_bus_size; i++) {
+    b_data[i] = digitalRead(_data_bus_pins[i]) == HIGH ? 1 : 0;
   }
-  return _bitsArrayToData(bData);
+  return _bitsArrayToData(b_data, data_bus_size);
 }
 
-void EepromProgrammer::_writeDataPins(const uint8_t data) {
-  bool bData[_EEPROM_28C64_DATA_BUS_SIZE];
-  _dataToBitsArray(data, bData);
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    digitalWrite(_dataPins[i], bData[i]);
+void EepromProgrammer::_writeData(const uint8_t data) {
+  Serial.print("[data] ");
+  Serial.print(data);
+  Serial.print(": ");
+  const size_t data_bus_size = _data_bus_size;
+  bool b_data[data_bus_size];
+  _dataToBitsArray(data, b_data, data_bus_size);
+  for (int i = 0; i < data_bus_size; i++) {
+    Serial.print(b_data[i]);
+    digitalWrite(_data_bus_pins[i], b_data[i]);
   }
+  Serial.println();
 }
 
 ErrorCode EepromProgrammer::init_programmer() {
@@ -324,11 +331,18 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
     break;
   }
 
+  // address bus
   _address_bus_size = _wiring_controller.get_address_bus_pins(_address_bus_pins, WiringController::MAX_ADDRESS_BUS_SIZE);
   if (_address_bus_size <= 0) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
   _memory_size_bytes = pow(2, _address_bus_size);
+
+  // data bus
+  _data_bus_size = _wiring_controller.get_data_bus_pins(_data_bus_pins, WiringController::MAX_DATA_BUS_SIZE);
+  if (_data_bus_size <= 0) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
 
   _chip_ready = true;
 
@@ -342,11 +356,11 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   digitalWrite(_writeEnablePin, HIGH);
 
   // address
-  _setAddressPinsMode();
+  _setAddressBusMode();
   // reset address
-  _writeAddressPins(0);
+  _writeAddress(0);
 
-  _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+  _setDataBusMode(_DataBusMode::READ);
 
   // status pin / open drain / NC
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -380,7 +394,7 @@ ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
   digitalWrite(_outputEnablePin, HIGH);  // off
   digitalWrite(_writeEnablePin, HIGH);   // not in use
   // switch data pins to READ mode
-  _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+  _setDataBusMode(_DataBusMode::READ);
 
   // status pin / open drain / NC
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -431,7 +445,7 @@ ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   }
 
   // (1) set address
-  _writeAddressPins(address);
+  _writeAddress(address);
 
   // (2) chip enable
   digitalWrite(_chipEnablePin, LOW);
@@ -443,7 +457,7 @@ ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   delayMicroseconds(1);  // arduino cannot delay in ns, only us
 
   // (5) read data
-  byte = _readDataPins();
+  byte = _readData();
 
   // (6) output disable
   digitalWrite(_outputEnablePin, HIGH);
@@ -452,7 +466,7 @@ ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   digitalWrite(_chipEnablePin, HIGH);
 
   // (8) reset address
-  _writeAddressPins(0);
+  _writeAddress(0);
 
   return ErrorCode::SUCCESS;
 }
@@ -476,7 +490,7 @@ ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
   digitalWrite(_writeEnablePin, HIGH);   // off
 
   // switch data pins to WRITE mode
-  _setDataPinsMode(_DataPinsMode::DATA_PINS_WRITE);
+  _setDataBusMode(_DataBusMode::WRITE);
 
   // status pin / open drain / read status
   pinMode(_readyBusyOutputPin, INPUT_PULLUP);
@@ -525,7 +539,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   }
 
   // (1) set address
-  _writeAddressPins(address);
+  _writeAddress(address);
 
   // (2) chip enable
   digitalWrite(_chipEnablePin, LOW);
@@ -534,7 +548,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   digitalWrite(_writeEnablePin, LOW);
 
   // (4) write data
-  _writeDataPins(data);
+  _writeData(data);
 
   // (5) wrtie disable (initiates the data flush)
   digitalWrite(_writeEnablePin, HIGH);
@@ -578,7 +592,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
     // use !DATA polling, if chip doesn't have the RDY/!BUSY pin
     // following the data poll waveforms, the data is read in a loop until the value matches the one written
     // during the write procedure, the data pins remain in a metastable state.
-    _setDataPinsMode(_DataPinsMode::DATA_PINS_READ);
+    _setDataBusMode(_DataBusMode::READ);
 
     _write_op_wait_cycles = 0;
     const int delay_usec = 50;
@@ -592,7 +606,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
       digitalWrite(_outputEnablePin, LOW);
       // !OE to Output Delay (delta between OE and data ready) == 100 ns MAX
       delayMicroseconds(1);  // arduino cannot delay in ns, only us
-      uint8_t read_result = _readDataPins();
+      uint8_t read_result = _readData();
       digitalWrite(_outputEnablePin, HIGH);
       digitalWrite(_chipEnablePin, HIGH);
       if (read_result == data) {
@@ -600,7 +614,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
       }
     }
 
-    _setDataPinsMode(_DataPinsMode::DATA_PINS_WRITE);
+    _setDataBusMode(_DataBusMode::WRITE);
   }
   _write_op_wait_time_usec = micros() - _write_op_start_usec;
 
@@ -608,7 +622,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   digitalWrite(_chipEnablePin, HIGH);
 
   // (8) reset address
-  _writeAddressPins(0);
+  _writeAddress(0);
 
   return ErrorCode::SUCCESS;
 }
