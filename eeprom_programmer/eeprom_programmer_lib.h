@@ -251,18 +251,12 @@ void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode
 }
 
 void EepromProgrammer::_writeAddress(const uint32_t address) {
-  Serial.print("[address] ");
-  Serial.print(address);
-  Serial.print(": ");
   const size_t address_bus_size = _address_bus_size;
   bool b_address[address_bus_size];
   _addressToBitsArray(address, b_address, address_bus_size);
   for (int i = 0; i < address_bus_size; i++) {
-    Serial.print(_address_bus_pins[i]);
-    Serial.print(" ");
     digitalWrite(_address_bus_pins[i], b_address[i]);
   }
-  Serial.println();
 }
 
 uint8_t EepromProgrammer::_readData() {
@@ -275,17 +269,12 @@ uint8_t EepromProgrammer::_readData() {
 }
 
 void EepromProgrammer::_writeData(const uint8_t data) {
-  Serial.print("[data] ");
-  Serial.print(data);
-  Serial.print(": ");
   const size_t data_bus_size = _data_bus_size;
   bool b_data[data_bus_size];
   _dataToBitsArray(data, b_data, data_bus_size);
   for (int i = 0; i < data_bus_size; i++) {
-    Serial.print(b_data[i]);
     digitalWrite(_data_bus_pins[i], b_data[i]);
   }
-  Serial.println();
 }
 
 ErrorCode EepromProgrammer::init_programmer() {
