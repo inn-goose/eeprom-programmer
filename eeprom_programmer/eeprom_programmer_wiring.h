@@ -1,8 +1,19 @@
-#ifndef __eeprom_wiring_h__
-#define __eeprom_wiring_h__
+#ifndef __eeprom_programmer_wiring_h__
+#define __eeprom_programmer_wiring_h__
+
+namespace EepromProgrammerWiring {
+
+enum WiringType : int {
+  DIP28 = 1,
+  DIP24 = 2,
+  DIP28_SHIFT = 3,
+  DIP24_SHIFT = 4
+};
+
+typedef uint8_t PIN_NO;
 
 // ========================================
-// DIP28 to ARDUINO
+// DIP28 WIRING
 // ========================================
 
 // 29  --  1 --|    |-- 28 -- VCC
@@ -20,7 +31,7 @@
 // 53  -- 13 --|    |-- 16 -- 44
 // GND -- 14 --|    |-- 15 -- 46
 
-const uint8_t DIP28_TO_ARDUINO_PINS[] = {
+const PIN_NO DIP28_WIRING[28] = {
   // left side, 1-14, top-down
   29,  // 1
   31,  // 2
@@ -35,7 +46,7 @@ const uint8_t DIP28_TO_ARDUINO_PINS[] = {
   49,  // 11
   51,  // 12
   53,  // 13
-  -1,  // 14 / GND
+  0,  // 14 / GND
   // right side, 15-28, bottom-up
   46,  // 15
   44,  // 16
@@ -50,14 +61,42 @@ const uint8_t DIP28_TO_ARDUINO_PINS[] = {
   26,  // 25
   24,  // 26
   22,  // 27
-  -1,  // 28 / VCC
+  0,  // 28 / VCC
 };
 
 // ========================================
 // EEPROM Wiring Info
 // ========================================
 
-class EepromWiringInfo {};
+class EepromWiring {
+public:
+  static const size_t MAX_ARDUINO_PINS_SIZE = 28;  // DIP28
+
+  EepromWiring(const WiringType wiring_type)
+    : _wiring_type(wiring_type) {}
+
+  size_t get_arduino_pins(PIN_NO* arduino_pins, const size_t arduino_pins_size) {
+    switch (_wiring_type) {
+      case WiringType::DIP28:
+        if (arduino_pins_size < 28) {
+          break;
+        }
+        // memcpu
+        for (size_t i = 0; i < 28; i ++) {
+          arduino_pins[i] = DIP28_WIRING[i];
+        }
+        return 28;
+      default:
+        break;
+    }
+    return -1;
+  }
+
+private:
+  static const size_t _MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: AO to A14
+
+  WiringType _wiring_type;
+};
 
 // AT28C64 / DIP28
 
@@ -76,12 +115,14 @@ class EepromWiringInfo {};
 // 13 -- | IO2   IO4 |-- 16
 // 14 -- | GND   IO3 |-- 15
 
-class AT28C64 : public EepromWiringInfo {
-  static const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
-  static const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  static const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
-  static const uint8_t NC_PINS[] = { 26 };
+class AT28C64 : public EepromWiring {
+  static constexpr const uint8_t ADDRESS_PINS[13] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
+  static constexpr const uint8_t DATA_PINS[8] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+  static constexpr const uint8_t MANAGEMENT_PINS[4] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
+  static constexpr const uint8_t NC_PINS[1] = { 26 };
 };
+
+constexpr uint8_t AT28C64::ADDRESS_PINS[13];
 
 // AT28C256 / DIP28
 
@@ -100,11 +141,11 @@ class AT28C64 : public EepromWiringInfo {
 // 13 -- | IO2   IO4 |-- 16
 // 14 -- | GND   IO3 |-- 15
 
-class AT28C256 : public EepromWiringInfo {
-  static const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
-  static const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  static const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27 };  // !CE, !OE, !WE, [!BSY]
-  static const uint8_t NC_PINS[] = {};
+class AT28C256 : public EepromWiring {
+  static constexpr const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
+  static constexpr const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+  static constexpr const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27 };  // !CE, !OE, !WE, [!BSY]
+  static constexpr const uint8_t NC_PINS[] = {};
 };
 
 
@@ -162,4 +203,6 @@ const uint8_t EEPROM_WRITE_ENABLE_PIN = 22;
 const uint8_t EEPROM_READY_BUSY_OUTPUT_PIN = 29;
 const uint8_t NON_CONNECTED_PINS[] = { 24 };
 
-#endif  // !__eeprom_wiring_h__
+}  // EepromProgrammerWiring
+
+#endif  // !__eeprom_programmer_wiring_h__

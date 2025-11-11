@@ -3,22 +3,34 @@
 #ifndef __eeprom_programmer_lib_h__
 #define __eeprom_programmer_lib_h__
 
+#include "eeprom_programmer_wiring.h"
+
+using namespace EepromProgrammerWiring;
+
 namespace EepromProgrammerLibrary {
 
 // Error Codes
 
 enum ErrorCode : int {
   SUCCESS = 0,
-  CHIP_NOT_SUPPORTED = 1,
-  ALREADY_INITIALIZED = 2,
-  NOT_INITIALIZED = 3,
-  INVALID_PAGE_SIZE = 4,
-  INVALID_PAGE_NO = 5,
-  INVALID_ADDRESS = 6,
-  READ_MODE_DISABLED = 7,
-  READ_FAILED = 8,
-  WRITE_MODE_DISABLED = 9,
-  WRITE_FAILED = 10,
+  // connection and pins
+  INVALID_WIRING_TYPE = 11,
+  PINS_NOT_INITIALIZED = 12,
+  // chip
+  CHIP_NOT_SUPPORTED = 21,
+  CHIP_ALREADY_INITIALIZED = 22,
+  CHIP_NOT_INITIALIZED = 23,
+  // address
+  INVALID_PAGE_SIZE = 31,
+  INVALID_PAGE_NO = 32,
+  INVALID_ADDRESS = 33,
+  // read
+  READ_MODE_DISABLED = 41,
+  READ_FAILED = 42,
+  // write
+  WRITE_MODE_DISABLED = 51,
+  WRITE_FAILED = 52,
+  // unknown
   UNKNOWN_ERROR = 1000
 };
 
@@ -28,6 +40,8 @@ enum ErrorCode : int {
 class EepromProgrammer {
 public:
   EepromProgrammer(
+    // wiring type
+    const WiringType wiring_type,
     // address
     const uint8_t* addressPins,
     // data
@@ -42,7 +56,7 @@ public:
     const uint8_t* nonConnectedPins);
 
   // init
-  void init_programmer();
+  ErrorCode init_programmer();
   ErrorCode init_chip(const String& chip_type);
   inline int get_page_size_bytes() {
     return _page_size_bytes;
@@ -51,7 +65,7 @@ public:
   // read
   ErrorCode set_read_mode(const int page_size_bytes);
   ErrorCode read_page(const int page_no, uint8_t* bytes);
-  ErrorCode read_byte(const uint16_t address, uint8_t &byte);
+  ErrorCode read_byte(const uint16_t address, uint8_t& byte);
 
   // write
   ErrorCode set_write_mode(const int page_size_bytes);
@@ -110,6 +124,8 @@ private:
   uint8_t _readDataPins();
   void _writeDataPins(const uint8_t data);
 
+  EepromWiring _eeprom_wiring;
+
   // PINS
   // address
   uint8_t _addressPins[_EEPROM_28C64_ADDRRESS_BUS_SIZE];
@@ -126,7 +142,8 @@ private:
   size_t _nonConnectedPinsSize;
 
   // inner
-  bool _chip_is_ready;
+  bool _pins_initialized;
+  bool _chip_ready;
   bool _has_rdy_busy_pin;
 
   // modes
@@ -176,6 +193,8 @@ private:
 };
 
 EepromProgrammer::EepromProgrammer(
+  // wiring type
+  const WiringType wiring_type,
   // address
   const uint8_t* addressPins,
   // data
@@ -187,7 +206,8 @@ EepromProgrammer::EepromProgrammer(
   // status
   const uint8_t readyBusyOutputPin,
   // non-connected
-  const uint8_t* nonConnectedPins) {
+  const uint8_t* nonConnectedPins)
+  : _eeprom_wiring(wiring_type) {
   // address
   memcpy(_addressPins, addressPins, _EEPROM_28C64_ADDRRESS_BUS_SIZE);
   // data
@@ -205,7 +225,8 @@ EepromProgrammer::EepromProgrammer(
   }
 
   // inner
-  _chip_is_ready = false;
+  _pins_initialized = false;
+  _chip_ready = false;
   _has_rdy_busy_pin = false;
 
   // mode
@@ -262,12 +283,29 @@ void EepromProgrammer::_writeDataPins(const uint8_t data) {
   }
 }
 
-void EepromProgrammer::init_programmer() {
+ErrorCode EepromProgrammer::init_programmer() {
+  PIN_NO arduino_pins[EepromWiring::MAX_ARDUINO_PINS_SIZE];
+  const size_t arduino_pins_size = _eeprom_wiring.get_arduino_pins(arduino_pins, sizeof(arduino_pins) / sizeof(arduino_pins[0]));
+  if (arduino_pins_size < 0) {
+    return;
+  }
+  // set all pins as NC
+  for (size_t i = 0; i < arduino_pins_size; i++) {
+    const PIN_NO pin_no = arduino_pins[i];
+    if (pin_no == 0) {  // VCC or GND
+      continue;
+    }
+    pinMode(pin_no, INPUT_PULLUP);
+  }
+  _pins_initialized = true;
 }
 
 ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
-  if (_chip_is_ready) {
-    return ErrorCode::ALREADY_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (_chip_ready) {
+    return ErrorCode::CHIP_ALREADY_INITIALIZED;
   }
   String _chip_type = chip_type;
 
@@ -276,14 +314,14 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
     return ErrorCode::CHIP_NOT_SUPPORTED;
   }
 
-  _chip_is_ready = true;
+  _chip_ready = true;
 
   if (chip_type == "AT28C64") {
     _memory_size_bytes = pow(2, 13);  // 13 address pins
-    _has_rdy_busy_pin = true;  // has RDY/!BUSY
+    _has_rdy_busy_pin = true;         // has RDY/!BUSY
   } else if (chip_type == "AT28C256") {
     _memory_size_bytes = pow(2, 15);  // 15 address pins
-    _has_rdy_busy_pin = false;  // only address pins
+    _has_rdy_busy_pin = false;        // only address pins
   }
 
   // set control pins
@@ -317,8 +355,11 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
 }
 
 ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (page_size_bytes < 1 || page_size_bytes > _MAX_PAGE_SIZE) {
     return ErrorCode::INVALID_PAGE_SIZE;
@@ -340,8 +381,11 @@ ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
 }
 
 ErrorCode EepromProgrammer::read_page(const int page_no, uint8_t* bytes) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (!_read_mode) {
     return ErrorCode::READ_MODE_DISABLED;
@@ -364,9 +408,12 @@ ErrorCode EepromProgrammer::read_page(const int page_no, uint8_t* bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t& byte) {
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (!_read_mode) {
     return ErrorCode::READ_MODE_DISABLED;
@@ -403,8 +450,11 @@ ErrorCode EepromProgrammer::read_byte(const uint16_t address, uint8_t &byte) {
 }
 
 ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (page_size_bytes < 1 || page_size_bytes > _MAX_PAGE_SIZE) {
     return ErrorCode::INVALID_PAGE_SIZE;
@@ -427,8 +477,11 @@ ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
 }
 
 ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (!_write_mode) {
     return ErrorCode::WRITE_MODE_DISABLED;
@@ -450,8 +503,11 @@ ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes) 
 }
 
 ErrorCode EepromProgrammer::write_byte(const uint16_t address, const uint8_t data) {
-  if (!_chip_is_ready) {
-    return ErrorCode::NOT_INITIALIZED;
+  if (!_pins_initialized) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+  if (!_chip_ready) {
+    return ErrorCode::CHIP_NOT_INITIALIZED;
   }
   if (!_write_mode) {
     return ErrorCode::WRITE_MODE_DISABLED;
