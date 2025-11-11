@@ -8,14 +8,62 @@ from core import eeprom_programmer_client
 from serial_json_rpc import client
 
 
-def number_file_path(file_path: str, index: int) -> str:
-    if '.' in file_path:
-        file_name_parts = file_path.split('.')
-        file_name = ".".join(file_name_parts[:-1])
-        file_ext = file_name_parts[-1]
-        return f"{file_name}_{index}.{file_ext}"
-    else:
-        return f"{file_path}_{index}"
+def read(json_rpc_client, device: str, file_path: str):
+    print(f"read data to {file_path}")
+
+    ts = time.time()
+    try:
+        eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, device, file_path)
+    except Exception as ex:
+        print(f"reading data: failed, {str(ex)}")
+        return 1
+
+    elapsed = time.time() - ts
+    print(f"reading data: success, {elapsed:.02f} sec")
+    return 0
+
+
+def write(json_rpc_client, device: str, file_path: str):
+    print(f"write data to {file_path}")
+
+    ts = time.time()
+
+    try:
+        eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, device, file_path)
+    except Exception as ex:
+        print(f"writing data: failed, {str(ex)}")
+        return 1
+
+    elapsed = time.time() - ts
+    print(f"writing data: success, {elapsed:.02f} sec")
+    return 0
+
+
+def erase(json_rpc_client, device: str, erase_pattern_str: str):
+    erase_pattern = 255  # FF
+    if erase_pattern_str:
+        try:
+            erase_pattern = int(erase_pattern_str, 16)
+            if erase_pattern < 0 or erase_pattern > 255:
+                print(f"invalid erase pattern {erase_pattern_str}, should be within [0, 255] range")
+                return 1
+        except Exception:
+            print(f"invalid erase pattern {erase_pattern_str}, should be a HEX value")
+            return 1
+
+    print(f"erase data with {hex(erase_pattern)}")
+
+    ts = time.time()
+
+    try:
+        eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, device, erase_pattern)
+    except Exception as ex:
+        print(f"erasing data: failed, {str(ex)}")
+        return 1
+
+    elapsed = time.time() - ts
+    print(f"erasing data: success, {elapsed:.02f} sec")
+    return 0
 
 
 def cli() -> int:
@@ -26,8 +74,9 @@ def cli() -> int:
     parser.add_argument("-p", "--device", type=str, required=True)
     parser.add_argument("-r", "--read", type=str, required=False)
     parser.add_argument("-w", "--write", type=str, required=False)
+    parser.add_argument("--skip-erase", action="store_true", required=False)
     parser.add_argument("--erase", action="store_true", required=False)
-    parser.add_argument("--attempts", type=int, default=1)
+    parser.add_argument("--erase-pattern", type=str, required=False)
     args = parser.parse_args()
 
     # init
@@ -38,47 +87,18 @@ def cli() -> int:
         print(f"init: {init_result}")
 
     if args.read is not None:
-        for i in range(1, args.attempts + 1):
-            if args.attempts > 1:
-                file_path = number_file_path(args.read, i)
-            else:
-                file_path = args.read
-            print(f"read data to {file_path}")
-            try:
-                ts = time.time()
-                eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, args.device, file_path)
-                elapsed = time.time() - ts
-                print(f"reading data: success, {elapsed:.02f} sec")
-            except Exception as ex:
-                print(f"failed to read data with: {str(ex)}")
-                return 1
+        return read(json_rpc_client, args.device, args.read)
 
     elif args.erase is not None:
-        try:
-            ts = time.time()
-            erase_pattern = 255  # FF
-            eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, args.device, erase_pattern)
-            elapsed = time.time() - ts
-            print(f"erasing data: success, {elapsed:.02f} sec")
-        except Exception as ex:
-            print(f"failed to erase chip with: {str(ex)}")
-            return 1
+        return erase(json_rpc_client, args.device, args.erase_pattern)
 
     elif args.write is not None:
-        for i in range(1, args.attempts + 1):
-            if args.attempts > 1:
-                file_path = number_file_path(args.write, i)
-            else:
-                file_path = args.write
-            print(f"write data to {file_path}")
-            try:
-                ts = time.time()
-                eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, args.device, file_path)
-                elapsed = time.time() - ts
-                print(f"writing data: success, {elapsed:.02f} sec")
-            except Exception as ex:
-                print(f"failed to write data with: {str(ex)}")
-                return 1
+        if not args.skip_erase:
+            erase_ret = erase(json_rpc_client, args.device, args.erase_pattern)
+            if erase_ret != 0:
+                return erase_ret
+        return write(json_rpc_client, args.device, args.write)
+
     else:
         print("unknown mode")
 
