@@ -25,11 +25,11 @@ def connect(port: str, baudrate: int, init_timeout: int):
     return json_rpc_client
 
 
-def init(json_rpc_client, device: str):
+def init(programmer_client: eeprom_programmer_client.EepromProgrammerClient, device: str):
     print(f"chip init: {device}")
 
     try:
-        eeprom_programmer_client.EepromProgrammerClient.init_chip(json_rpc_client, device)
+        programmer_client.init_chip(device)
     except Exception as ex:
         print(f"chip init: failed, {str(ex)}")
         return 1
@@ -39,12 +39,12 @@ def init(json_rpc_client, device: str):
     return 0
 
 
-def read(json_rpc_client, device: str, file_path: str):
+def read(programmer_client: eeprom_programmer_client.EepromProgrammerClient, file_path: str):
     print(f"read data: {file_path}")
 
     ts = time.time()
     try:
-        eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, device, file_path)
+        programmer_client.read_data_to_file(file_path)
     except Exception as ex:
         print(f"read data: failed, {str(ex)}")
         return 1
@@ -55,13 +55,13 @@ def read(json_rpc_client, device: str, file_path: str):
     return 0
 
 
-def write(json_rpc_client, device: str, file_path: str):
+def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, file_path: str):
     print(f"write data: {file_path}")
 
     ts = time.time()
 
     try:
-        eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, device, file_path)
+        programmer_client.write_data_to_file(file_path)
     except Exception as ex:
         print(f"write data: failed, {str(ex)}")
         return 1
@@ -72,7 +72,7 @@ def write(json_rpc_client, device: str, file_path: str):
     return 0
 
 
-def erase(json_rpc_client, device: str, erase_pattern_str: str):
+def erase(programmer_client: eeprom_programmer_client.EepromProgrammerClient, erase_pattern_str: str):
     erase_pattern = 255  # FF
     if erase_pattern_str:
         try:
@@ -89,7 +89,7 @@ def erase(json_rpc_client, device: str, erase_pattern_str: str):
     ts = time.time()
 
     try:
-        eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, device, erase_pattern)
+        programmer_client.erase_data(erase_pattern)
     except Exception as ex:
         print(f"erase data: failed, {str(ex)}")
         return 1
@@ -116,21 +116,24 @@ def cli() -> int:
     # connect
     json_rpc_client = connect(args.port, args.baudrate, args.init_timeout)
 
+    # init eeprom programmer client
+    programmer_client = eeprom_programmer_client.EepromProgrammerClient(json_rpc_client)
+
     # init chip
-    init(json_rpc_client, args.device)
+    init(programmer_client, args.device)
 
     if args.read is not None:
-        return read(json_rpc_client, args.device, args.read)
+        return read(programmer_client, args.read)
 
     elif args.erase:
-        return erase(json_rpc_client, args.device, args.erase_pattern)
+        return erase(programmer_client, args.erase_pattern)
 
     elif args.write is not None:
         if not args.skip_erase:
-            erase_ret = erase(json_rpc_client, args.device, args.erase_pattern)
+            erase_ret = erase(programmer_client, args.erase_pattern)
             if erase_ret != 0:
                 return erase_ret
-        return write(json_rpc_client, args.device, args.write)
+        return write(programmer_client, args.write)
 
     else:
         print("unknown mode")
