@@ -129,7 +129,7 @@ curl -LJ --output tmp/zenith_zt1_eeprom.bin "https://github.com/misterblack1/zen
 source venv/bin/activate
 export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
-# read data from file
+# read data to file
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
 
 # convert to HEX
@@ -143,7 +143,7 @@ source venv/bin/activate
 export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # erase with FF pattern
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase --erase-pattern FF
 ```
 
 #### write
@@ -154,6 +154,9 @@ export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # write data from file
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
+
+# skip erase
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --skip-erase
 ```
 
 
