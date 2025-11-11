@@ -64,7 +64,7 @@ def erase(json_rpc_client, device: str, erase_pattern_str: str):
             print(f"invalid erase pattern {erase_pattern_str}, should be a HEX value")
             return 1
 
-    print(f"erase data: {erase_pattern:02X}")
+    print(f"erase data: 0x{erase_pattern:02X}")
 
     ts = time.time()
 
