@@ -14,12 +14,6 @@ static EepromProgrammer eeprom_programmer(
   WiringType::DIP28,
   // data
   EEPROM_DATA_PINS,
-  // management
-  EEPROM_CHIP_ENABLE_PIN,
-  EEPROM_OUTPUT_ENABLE_PIN,
-  EEPROM_WRITE_ENABLE_PIN,
-  // status
-  EEPROM_READY_BUSY_OUTPUT_PIN,
   // non-connected
   NON_CONNECTED_PINS);
 

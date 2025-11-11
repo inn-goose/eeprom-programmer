@@ -104,7 +104,8 @@ static const size_t ADDRESS_BUS_SIZE = 13;
 static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
 static const size_t DATA_BUS_SIZE = 8;
 static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-// static const PIN_NO MANAGEMENT_PINS[4] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
+static const size_t MANAGEMENT_SIZE = 4;
+static const PIN_NO MANAGEMENT_PINS[MANAGEMENT_SIZE] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
 // static const PIN_NO NC_PINS[1] = { 26 };
 }
 
@@ -128,7 +129,7 @@ static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18,
 class AT28C256 {
   // static const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
   // static const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  // static const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27 };  // !CE, !OE, !WE, [!BSY]
+  // static const uint8_t MANAGEMENT_PINS[4] = { 20, 22, 27, 0 };  // !CE, !OE, !WE, [!BSY]
   // static const uint8_t NC_PINS[] = {};
 };
 
@@ -137,7 +138,8 @@ class WiringController {
 public:
   static const size_t MAX_BOARD_BUS_SIZE = 28;    // DIP28
   static const size_t MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: A0 to A14
-  static const size_t MAX_DATA_BUS_SIZE = 8;  // AT28C256: I/O0 to I/O7
+  static const size_t MAX_DATA_BUS_SIZE = 8;      // AT28C256: I/O0 to I/O7
+  static const size_t MAX_MANAGEMENT_SIZE = 4;    // CE, OE, WE, BSY
 
   WiringController(const WiringType wiring_type)
     : _wiring_type(wiring_type) {}
@@ -252,6 +254,45 @@ public:
       pins_array[i] = dip_wiring_mapping[data_bus_pins[i] - 1];
     }
     return data_bus_size;
+  }
+
+  size_t get_management_pins(PIN_NO* pins_array, const size_t array_size) {
+    size_t management_size = 0;
+    PIN_NO* management_pins = 0;
+    PIN_NO* dip_wiring_mapping = 0;
+
+    switch (_wiring_type) {
+      case WiringType::DIP28:
+        dip_wiring_mapping = DIP28_WIRING;
+        switch (_chip_type) {
+          case ChipType::AT28C64:
+            management_size = AT28C64_Wiring::MANAGEMENT_SIZE;
+            management_pins = AT28C64_Wiring::MANAGEMENT_PINS;
+            break;
+          default:
+            break;
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (dip_wiring_mapping == 0) {
+      return -1;
+    }
+    if (management_size == 0 || management_pins == 0) {
+      return -1;
+    }
+    if (array_size < management_size) {
+      return -1;
+    }
+
+    // mapping
+    for (size_t i = 0; i < management_size; i++) {
+      // mapping starts from 0, but PIN numbers start from 1 for convenience
+      pins_array[i] = dip_wiring_mapping[management_pins[i] - 1];
+    }
+    return management_size;
   }
 
 private:
