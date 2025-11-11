@@ -199,52 +199,6 @@ EepromProgrammer::EepromProgrammer(const WiringType wiring_type)
   _write_op_wait_cycles = -1;
 }
 
-void EepromProgrammer::_setAddressBusMode() {
-  for (int i = 0; i < _address_bus_size; i++) {
-    pinMode(_address_bus_pins[i], OUTPUT);
-  }
-}
-
-void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode) {
-  if (mode == EepromProgrammer::_DataBusMode::READ) {
-    for (int i = 0; i < _data_bus_size; i++) {
-      pinMode(_data_bus_pins[i], INPUT_PULLUP);
-    }
-
-  } else if (mode == EepromProgrammer::_DataBusMode::WRITE) {
-    for (int i = 0; i < _data_bus_size; i++) {
-      pinMode(_data_bus_pins[i], OUTPUT);
-    }
-  }
-}
-
-void EepromProgrammer::_writeAddress(const uint32_t address) {
-  const size_t c_address_bus_size = _address_bus_size;
-  bool b_address[c_address_bus_size];
-  _addressToBitsArray(address, b_address, c_address_bus_size);
-  for (int i = 0; i < c_address_bus_size; i++) {
-    digitalWrite(_address_bus_pins[i], b_address[i]);
-  }
-}
-
-uint8_t EepromProgrammer::_readData() {
-  const size_t c_data_bus_size = _data_bus_size;
-  bool b_data[c_data_bus_size];
-  for (int i = 0; i < c_data_bus_size; i++) {
-    b_data[i] = digitalRead(_data_bus_pins[i]) == HIGH ? 1 : 0;
-  }
-  return _bitsArrayToData(b_data, c_data_bus_size);
-}
-
-void EepromProgrammer::_writeData(const uint8_t data) {
-  const size_t c_data_bus_size = _data_bus_size;
-  bool b_data[c_data_bus_size];
-  _dataToBitsArray(data, b_data, c_data_bus_size);
-  for (int i = 0; i < c_data_bus_size; i++) {
-    digitalWrite(_data_bus_pins[i], b_data[i]);
-  }
-}
-
 ErrorCode EepromProgrammer::init_programmer() {
   PIN_NO board_bus_pins[WiringController::MAX_BOARD_BUS_SIZE];
   const size_t board_bus_size = _wiring_controller.get_board_bus_pins(board_bus_pins, WiringController::MAX_BOARD_BUS_SIZE);
@@ -573,6 +527,52 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   _writeAddress(0);
 
   return ErrorCode::SUCCESS;
+}
+
+void EepromProgrammer::_setAddressBusMode() {
+  for (int i = 0; i < _address_bus_size; i++) {
+    pinMode(_address_bus_pins[i], OUTPUT);
+  }
+}
+
+void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode) {
+  if (mode == EepromProgrammer::_DataBusMode::READ) {
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], INPUT_PULLUP);
+    }
+
+  } else if (mode == EepromProgrammer::_DataBusMode::WRITE) {
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], OUTPUT);
+    }
+  }
+}
+
+void EepromProgrammer::_writeAddress(const uint32_t address) {
+  const size_t c_address_bus_size = _address_bus_size;
+  bool b_address[c_address_bus_size];
+  _addressToBitsArray(address, b_address, c_address_bus_size);
+  for (int i = 0; i < c_address_bus_size; i++) {
+    digitalWrite(_address_bus_pins[i], b_address[i]);
+  }
+}
+
+uint8_t EepromProgrammer::_readData() {
+  const size_t c_data_bus_size = _data_bus_size;
+  bool b_data[c_data_bus_size];
+  for (int i = 0; i < c_data_bus_size; i++) {
+    b_data[i] = digitalRead(_data_bus_pins[i]) == HIGH ? 1 : 0;
+  }
+  return _bitsArrayToData(b_data, c_data_bus_size);
+}
+
+void EepromProgrammer::_writeData(const uint8_t data) {
+  const size_t c_data_bus_size = _data_bus_size;
+  bool b_data[c_data_bus_size];
+  _dataToBitsArray(data, b_data, c_data_bus_size);
+  for (int i = 0; i < c_data_bus_size; i++) {
+    digitalWrite(_data_bus_pins[i], b_data[i]);
+  }
 }
 
 }  // EepromProgrammerLibrary
