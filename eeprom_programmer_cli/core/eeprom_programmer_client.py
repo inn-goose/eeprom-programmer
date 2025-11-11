@@ -45,7 +45,7 @@ class EepromProgrammerClient:
         print(f"{address:08x}: {hex}{decoded}")
 
     @classmethod
-    def _init_chip(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str):
+    def init_chip(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str):
         try:
             res = json_rpc_client.send_request("init_chip", [chip_type])
             print(f"init_chip: {res}")
@@ -68,9 +68,6 @@ class EepromProgrammerClient:
         page_size = cls._READ_PAGE_SIZE
         memory_size = chip_settings["memory_size"]
         pages_total = int(memory_size / page_size)
-
-        # init chip
-        cls._init_chip(json_rpc_client, chip_type)
 
         # set READ mode
         cls._set_read_mode(json_rpc_client, page_size)
@@ -103,14 +100,9 @@ class EepromProgrammerClient:
                 f"failed to set WRITE mode with: {ex}")
         
     @classmethod
-    def _write_data(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str, write_data: bytes):
-        chip_settings = cls._get_eeprom_chip_settings(chip_type)
+    def _write_data(cls, json_rpc_client: client.SerialJsonRpcClient, write_data: bytes):
         page_size = cls._WRITE_PAGE_SIZE
-        memory_size = chip_settings["memory_size"]
-        pages_total = int(memory_size / page_size)
-
-        # init chip
-        cls._init_chip(json_rpc_client, chip_type)
+        pages_total = int(len(write_data) / page_size)
 
         # set WRITE mode
         cls._set_write_mode(json_rpc_client, page_size)
@@ -134,7 +126,7 @@ class EepromProgrammerClient:
         memory_size = chip_settings["memory_size"]
         write_data = bytes([erase_pattern] * memory_size)
 
-        cls._write_data(json_rpc_client, chip_type, write_data)
+        cls._write_data(json_rpc_client, write_data)
 
     @classmethod
     def write_data_to_file(cls, json_rpc_client: client.SerialJsonRpcClient, chip_type: str, file_path: str):
@@ -155,8 +147,4 @@ class EepromProgrammerClient:
             raise EepromProgrammerClientError(
                 "failed to write data, source is bigger than the chip memory size")
         
-        if len(write_data) < memory_size:
-            # FF is a default filler
-            write_data += bytes([255] * (memory_size - len(write_data)))
-
-        cls._write_data(json_rpc_client, chip_type, write_data)
+        cls._write_data(json_rpc_client, write_data)

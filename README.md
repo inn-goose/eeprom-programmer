@@ -159,6 +159,9 @@ export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # skip erase
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --skip-erase
+
+# custom erase pattern
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --erase-pattern CC
 ```
 
 

@@ -8,34 +8,47 @@ from core import eeprom_programmer_client
 from serial_json_rpc import client
 
 
+def init(json_rpc_client, device: str):
+    print(f"chip init: {device}")
+
+    try:
+        eeprom_programmer_client.EepromProgrammerClient.init_chip(json_rpc_client, device)
+    except Exception as ex:
+        print(f"chip init: failed, {str(ex)}")
+        return 1
+
+    print(f"chip init: success")
+    return 0
+
+
 def read(json_rpc_client, device: str, file_path: str):
-    print(f"read data to {file_path}")
+    print(f"read data: {file_path}")
 
     ts = time.time()
     try:
         eeprom_programmer_client.EepromProgrammerClient.read_data_to_file(json_rpc_client, device, file_path)
     except Exception as ex:
-        print(f"reading data: failed, {str(ex)}")
+        print(f"read data: failed, {str(ex)}")
         return 1
 
     elapsed = time.time() - ts
-    print(f"reading data: success, {elapsed:.02f} sec")
+    print(f"read data: success, {elapsed:.02f} sec")
     return 0
 
 
 def write(json_rpc_client, device: str, file_path: str):
-    print(f"write data to {file_path}")
+    print(f"write data: {file_path}")
 
     ts = time.time()
 
     try:
         eeprom_programmer_client.EepromProgrammerClient.write_data_to_file(json_rpc_client, device, file_path)
     except Exception as ex:
-        print(f"writing data: failed, {str(ex)}")
+        print(f"write data: failed, {str(ex)}")
         return 1
 
     elapsed = time.time() - ts
-    print(f"writing data: success, {elapsed:.02f} sec")
+    print(f"write data: success, {elapsed:.02f} sec")
     return 0
 
 
@@ -51,18 +64,18 @@ def erase(json_rpc_client, device: str, erase_pattern_str: str):
             print(f"invalid erase pattern {erase_pattern_str}, should be a HEX value")
             return 1
 
-    print(f"erase data with {hex(erase_pattern)}")
+    print(f"erase data: {erase_pattern:02X}")
 
     ts = time.time()
 
     try:
         eeprom_programmer_client.EepromProgrammerClient.erase_data(json_rpc_client, device, erase_pattern)
     except Exception as ex:
-        print(f"erasing data: failed, {str(ex)}")
+        print(f"erase data: failed, {str(ex)}")
         return 1
 
     elapsed = time.time() - ts
-    print(f"erasing data: success, {elapsed:.02f} sec")
+    print(f"erase data: success, {elapsed:.02f} sec")
     return 0
 
 
@@ -74,22 +87,25 @@ def cli() -> int:
     parser.add_argument("-p", "--device", type=str, required=True)
     parser.add_argument("-r", "--read", type=str, required=False)
     parser.add_argument("-w", "--write", type=str, required=False)
-    parser.add_argument("--skip-erase", action="store_true", required=False)
-    parser.add_argument("--erase", action="store_true", required=False)
+    parser.add_argument("--skip-erase", action="store_true")
+    parser.add_argument("--erase", action="store_true")
     parser.add_argument("--erase-pattern", type=str, required=False)
     args = parser.parse_args()
 
-    # init
+    # init client
     json_rpc_client = client.SerialJsonRpcClient(
         port=args.port, baudrate=args.baudrate, init_timeout=float(args.init_timeout))
     init_result = json_rpc_client.init()
     if init_result is not None:
         print(f"init: {init_result}")
 
+    # init chip
+    init(json_rpc_client, args.device)
+
     if args.read is not None:
         return read(json_rpc_client, args.device, args.read)
 
-    elif args.erase is not None:
+    elif args.erase:
         return erase(json_rpc_client, args.device, args.erase_pattern)
 
     elif args.write is not None:
