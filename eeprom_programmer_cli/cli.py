@@ -8,6 +8,23 @@ from core import eeprom_programmer_client
 from serial_json_rpc import client
 
 
+def connect(port: str, baudrate: int, init_timeout: int):
+    print(f"connect: {port}")
+
+    ts = time.time()
+    json_rpc_client = client.SerialJsonRpcClient(
+        port=port, baudrate=baudrate, init_timeout=float(init_timeout))
+
+    init_result = json_rpc_client.init()
+    if init_result is not None:
+        print(f"connect: response {init_result}")
+
+    elapsed = time.time() - ts
+    print(f"connect: success, {elapsed:.02f} sec")
+
+    return json_rpc_client
+
+
 def init(json_rpc_client, device: str):
     print(f"chip init: {device}")
 
@@ -18,6 +35,7 @@ def init(json_rpc_client, device: str):
         return 1
 
     print(f"chip init: success")
+
     return 0
 
 
@@ -33,6 +51,7 @@ def read(json_rpc_client, device: str, file_path: str):
 
     elapsed = time.time() - ts
     print(f"read data: success, {elapsed:.02f} sec")
+
     return 0
 
 
@@ -49,6 +68,7 @@ def write(json_rpc_client, device: str, file_path: str):
 
     elapsed = time.time() - ts
     print(f"write data: success, {elapsed:.02f} sec")
+
     return 0
 
 
@@ -76,6 +96,7 @@ def erase(json_rpc_client, device: str, erase_pattern_str: str):
 
     elapsed = time.time() - ts
     print(f"erase data: success, {elapsed:.02f} sec")
+
     return 0
 
 
@@ -92,12 +113,8 @@ def cli() -> int:
     parser.add_argument("--erase-pattern", type=str, required=False)
     args = parser.parse_args()
 
-    # init client
-    json_rpc_client = client.SerialJsonRpcClient(
-        port=args.port, baudrate=args.baudrate, init_timeout=float(args.init_timeout))
-    init_result = json_rpc_client.init()
-    if init_result is not None:
-        print(f"init: {init_result}")
+    # connect
+    json_rpc_client = connect(args.port, args.baudrate, args.init_timeout)
 
     # init chip
     init(json_rpc_client, args.device)
