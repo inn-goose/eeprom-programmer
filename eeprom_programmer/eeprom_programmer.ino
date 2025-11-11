@@ -1,17 +1,18 @@
-#include "eeprom_programmer_wiring.h"
+#include "eeprom_wiring.h"
 #include "eeprom_programmer_lib.h"
 #include "serial_json_rpc_lib.h"
 
 using namespace EepromProgrammerLibrary;
-using namespace EepromProgrammerWiring;
 using namespace SerialJsonRpcLibrary;
 
 
 // EEPROM Programmer
 
 static EepromProgrammer eeprom_programmer(
-  // wiring type
-  WiringType::DIP28,
+  // address
+  EEPROM_ADDRESS_PINS,
+  // data
+  EEPROM_DATA_PINS,
   // management
   EEPROM_CHIP_ENABLE_PIN,
   EEPROM_OUTPUT_ENABLE_PIN,
