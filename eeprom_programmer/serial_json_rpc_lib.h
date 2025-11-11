@@ -18,6 +18,7 @@ public:
 
   void send_result_string(int id, const char* string);
   void send_result_bytes(int id, uint8_t* buffer, int buffer_size);
+  void send_result_ints(int id, int32_t* buffer, int buffer_size);
   void send_error(int id, int error_code, const char* error_message, const char* error_data);
 
   // helpers
@@ -105,6 +106,23 @@ void SerialJsonRpcBoard::send_result_bytes(int id, uint8_t* buffer, int buffer_s
   // max byte = 255 + comma separator + space == 4
   // array braces = [] == 2
   int data_size = 9 + 2 + 4 * buffer_size;
+  DynamicJsonDocument response = _get_response(id, data_size);
+
+  DynamicJsonDocument result(data_size);
+  JsonArray arr = result.to<JsonArray>();
+  for (int i = 0; i < buffer_size; i ++) {
+    arr.add(buffer[i]);
+  }
+  response["result"] = result;
+
+  _send_response(response);
+}
+
+void SerialJsonRpcBoard::send_result_ints(int id, int32_t* buffer, int buffer_size) {
+  // >"result":< == 9
+  // max byte = minus + 10 digits + comma separator + space == 13
+  // array braces = [] == 2
+  int data_size = 9 + 2 + 13 * buffer_size;
   DynamicJsonDocument response = _get_response(id, data_size);
 
   DynamicJsonDocument result(data_size);

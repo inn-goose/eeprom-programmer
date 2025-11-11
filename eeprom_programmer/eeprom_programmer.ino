@@ -33,10 +33,10 @@ void rpc_processor(int request_id, const String &method, const String params[], 
       return;
     }
 
-    const size_t result_buf_size = 50;
-    char result_buf[result_buf_size];
-    snprintf(result_buf, result_buf_size, "Chip %s is Ready", chip_type.c_str());
-    rpc_board.send_result_string(request_id, result_buf);
+    int32_t chip_settings[] = {
+      eeprom_programmer.get_memory_size_bytes(),
+    };
+    rpc_board.send_result_ints(request_id, chip_settings, sizeof(chip_settings) / sizeof(chip_settings[0]));
 
   } else if (method == "set_read_mode") {
     if (params_size != 1) {

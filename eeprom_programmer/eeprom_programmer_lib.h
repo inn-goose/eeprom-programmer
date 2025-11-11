@@ -44,6 +44,11 @@ public:
   // init
   ErrorCode init_programmer();
   ErrorCode init_chip(const String& chip_type);
+
+  // settings
+  inline int get_memory_size_bytes() {
+    return _memory_size_bytes;
+  }
   inline int get_page_size_bytes() {
     return _page_size_bytes;
   }
