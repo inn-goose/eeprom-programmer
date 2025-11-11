@@ -3,6 +3,10 @@
 #ifndef __eeprom_programmer_lib_h__
 #define __eeprom_programmer_lib_h__
 
+#include "eeprom_programmer_wiring.h"
+
+using namespace EepromProgrammerWiring;
+
 namespace EepromProgrammerLibrary {
 
 // Error Codes
@@ -36,6 +40,8 @@ enum ErrorCode : int {
 class EepromProgrammer {
 public:
   EepromProgrammer(
+    // wiring type
+    const WiringType wiring_type,
     // address
     const uint8_t* addressPins,
     // data
@@ -59,7 +65,7 @@ public:
   // read
   ErrorCode set_read_mode(const int page_size_bytes);
   ErrorCode read_page(const int page_no, uint8_t* bytes);
-  ErrorCode read_byte(const uint32_t address, uint8_t &byte);
+  ErrorCode read_byte(const uint32_t address, uint8_t& byte);
 
   // write
   ErrorCode set_write_mode(const int page_size_bytes);
@@ -117,6 +123,9 @@ private:
   void _writeAddress(const uint32_t address);
   uint8_t _readData();
   void _writeData(const uint8_t data);
+
+  // wiring controller
+  WiringController _wiring_controller;
 
   // PINS
   // address
@@ -188,6 +197,8 @@ private:
 };
 
 EepromProgrammer::EepromProgrammer(
+  // wiring type
+  const WiringType wiring_type,
   // address
   const uint8_t* addressPins,
   // data
@@ -199,7 +210,8 @@ EepromProgrammer::EepromProgrammer(
   // status
   const uint8_t readyBusyOutputPin,
   // non-connected
-  const uint8_t* nonConnectedPins) {
+  const uint8_t* nonConnectedPins)
+  : _wiring_controller(wiring_type) {
   // address
   memcpy(_addressPins, addressPins, _EEPROM_28C64_ADDRRESS_BUS_SIZE);
   // data
@@ -276,7 +288,23 @@ void EepromProgrammer::_writeData(const uint8_t data) {
 }
 
 ErrorCode EepromProgrammer::init_programmer() {
+  PIN_NO board_bus_pins[WiringController::MAX_BOARD_BUS_SIZE];
+  const size_t board_bus_size = _wiring_controller.get_board_bus_pins(board_bus_pins, WiringController::MAX_BOARD_BUS_SIZE);
+  if (board_bus_size <= 0) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
+
+  // set all pins as NC
+  for (size_t i = 0; i < board_bus_size; i++) {
+    const PIN_NO pin_no = board_bus_pins[i];
+    if (pin_no == 0) {  // VCC or GND
+      continue;
+    }
+    pinMode(pin_no, INPUT_PULLUP);
+  }
+
   _pins_initialized = true;
+
   return ErrorCode::SUCCESS;
 }
 
@@ -287,6 +315,12 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   if (_chip_ready) {
     return ErrorCode::CHIP_ALREADY_INITIALIZED;
   }
+
+  _wiring_controller.set_chip_type(str_to_chip_type(chip_type));
+  if (_wiring_controller.get_chip_type() == ChipType::UNKNOWN) {
+    return ErrorCode::CHIP_NOT_SUPPORTED;
+  }
+
   String _chip_type = chip_type;
 
   // AT28C64 only, hardcoded
@@ -298,10 +332,10 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
 
   if (chip_type == "AT28C64") {
     _memory_size_bytes = pow(2, 13);  // 13 address pins
-    _has_rdy_busy_pin = true;  // has RDY/!BUSY
+    _has_rdy_busy_pin = true;         // has RDY/!BUSY
   } else if (chip_type == "AT28C256") {
     _memory_size_bytes = pow(2, 15);  // 15 address pins
-    _has_rdy_busy_pin = false;  // only address pins
+    _has_rdy_busy_pin = false;        // only address pins
   }
 
   // set control pins
@@ -388,7 +422,7 @@ ErrorCode EepromProgrammer::read_page(const int page_no, uint8_t* bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t &byte) {
+ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   if (!_pins_initialized) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
