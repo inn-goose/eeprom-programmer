@@ -47,9 +47,7 @@ public:
     // wiring type
     const WiringType wiring_type,
     // TODO: remove HACK
-    const uint8_t* dataPins,
-    // non-connected
-    const uint8_t* nonConnectedPins);
+    const uint8_t* dataPins);
 
   // init
   ErrorCode init_programmer();
@@ -131,14 +129,11 @@ private:
   size_t _data_bus_size;
   // TODO: remove HACK
   uint8_t _dataPins[_EEPROM_28C64_DATA_BUS_SIZE];
-  // control
+  // management
   PIN_NO _chip_enable_pin;    // !CE
   PIN_NO _output_enable_pin;  // !OE
   PIN_NO _write_enable_pin;   // !WE
   PIN_NO _rdy_busy_pin;       // RDY / !BUSY
-  // non-connected / up to 4 NC for AT28C16
-  uint8_t _nonConnectedPins[4];
-  size_t _nonConnectedPinsSize;
 
   // inner
   bool _pins_initialized;
@@ -197,19 +192,11 @@ EepromProgrammer::EepromProgrammer(
   // wiring type
   const WiringType wiring_type,
   // TODO: remove HACK
-  const uint8_t* dataPins,
-  // non-connected
-  const uint8_t* nonConnectedPins)
+  const uint8_t* dataPins)
   : _wiring_controller(wiring_type) {
 
   // TODO: remove HACK
   memcpy(_dataPins, __EEPROM_DATA_PINS, 8);
-
-  // non-connected
-  _nonConnectedPinsSize = sizeof(nonConnectedPins) / sizeof(nonConnectedPins[0]);
-  if (_nonConnectedPinsSize > 0) {
-    memcpy(_nonConnectedPins, nonConnectedPins, _nonConnectedPinsSize);
-  }
 
   // inner
   _pins_initialized = false;
@@ -317,11 +304,17 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   }
   _memory_size_bytes = pow(2, _address_bus_size);
 
+  _setAddressBusMode();
+  // reset address
+  _writeAddress(0);
+
   // data bus
   _data_bus_size = _wiring_controller.get_data_bus_pins(_data_bus_pins, WiringController::MAX_DATA_BUS_SIZE);
   if (_data_bus_size <= 0) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
+
+  _setDataBusMode(_DataBusMode::READ);
 
   // management pins
   // !CE, !OE, !WE, [!BSY]
@@ -330,6 +323,7 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   if (management_size <= 0) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
+
   // !CE
   _chip_enable_pin = management_pins[0];
   pinMode(_chip_enable_pin, OUTPUT);
@@ -350,21 +344,6 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   }
 
   _chip_ready = true;
-
-  // address
-  _setAddressBusMode();
-  // reset address
-  _writeAddress(0);
-
-  _setDataBusMode(_DataBusMode::READ);
-
-  // non-connected
-  for (int i = 0; i < _nonConnectedPinsSize; i++) {
-    // best practice: use INPUT_PULLUP non non-connected pins
-    pinMode(_nonConnectedPins[i], INPUT_PULLUP);
-    // pinMode(_nonConnectedPins[i], OUTPUT);
-    // digitalWrite(_nonConnectedPins[i], LOW);
-  }
 
   return ErrorCode::SUCCESS;
 }

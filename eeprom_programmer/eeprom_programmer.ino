@@ -13,9 +13,7 @@ static EepromProgrammer eeprom_programmer(
   // wiring type
   WiringType::DIP28,
   // data
-  EEPROM_DATA_PINS,
-  // non-connected
-  NON_CONNECTED_PINS);
+  EEPROM_DATA_PINS);
 
 
 // Serial JSON RPC Processor
