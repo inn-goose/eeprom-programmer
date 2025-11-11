@@ -10,6 +10,20 @@ enum WiringType : int {
   DIP24_SHIFT = 4
 };
 
+enum ChipType : int {
+  AT28C64 = 1,
+  UNKNOWN = 1000
+};
+
+ChipType str_to_chip_type(const String& chip_type) {
+  String _chip_type = chip_type;
+  _chip_type.toUpperCase();
+  if (_chip_type == "AT28C64") {
+    return ChipType::AT28C64;
+  }
+  return ChipType::UNKNOWN;
+}
+
 typedef uint8_t PIN_NO;
 
 // ========================================
@@ -46,7 +60,7 @@ const PIN_NO DIP28_WIRING[28] = {
   49,  // 11
   51,  // 12
   53,  // 13
-  0,  // 14 / GND
+  0,   // 14 / GND
   // right side, 15-28, bottom-up
   46,  // 15
   44,  // 16
@@ -61,42 +75,12 @@ const PIN_NO DIP28_WIRING[28] = {
   26,  // 25
   24,  // 26
   22,  // 27
-  0,  // 28 / VCC
+  0,   // 28 / VCC
 };
 
 // ========================================
-// EEPROM Wiring Info
+// Chip WIRING
 // ========================================
-
-class EepromWiring {
-public:
-  static const size_t MAX_ARDUINO_PINS_SIZE = 28;  // DIP28
-
-  EepromWiring(const WiringType wiring_type)
-    : _wiring_type(wiring_type) {}
-
-  size_t get_arduino_pins(PIN_NO* arduino_pins, const size_t arduino_pins_size) {
-    switch (_wiring_type) {
-      case WiringType::DIP28:
-        if (arduino_pins_size < 28) {
-          break;
-        }
-        // memcpu
-        for (size_t i = 0; i < 28; i ++) {
-          arduino_pins[i] = DIP28_WIRING[i];
-        }
-        return 28;
-      default:
-        break;
-    }
-    return -1;
-  }
-
-private:
-  static const size_t _MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: AO to A14
-
-  WiringType _wiring_type;
-};
 
 // AT28C64 / DIP28
 
@@ -115,14 +99,13 @@ private:
 // 13 -- | IO2   IO4 |-- 16
 // 14 -- | GND   IO3 |-- 15
 
-class AT28C64 : public EepromWiring {
-  static constexpr const uint8_t ADDRESS_PINS[13] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
-  static constexpr const uint8_t DATA_PINS[8] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  static constexpr const uint8_t MANAGEMENT_PINS[4] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
-  static constexpr const uint8_t NC_PINS[1] = { 26 };
-};
-
-constexpr uint8_t AT28C64::ADDRESS_PINS[13];
+namespace AT28C64_Wiring {
+static const size_t ADDRESS_BUS_SIZE = 13;
+static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
+// static const PIN_NO DATA_PINS[8] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+// static const PIN_NO MANAGEMENT_PINS[4] = { 20, 22, 27, 1 };  // !CE, !OE, !WE, [!BSY]
+// static const PIN_NO NC_PINS[1] = { 26 };
+}
 
 // AT28C256 / DIP28
 
@@ -141,13 +124,99 @@ constexpr uint8_t AT28C64::ADDRESS_PINS[13];
 // 13 -- | IO2   IO4 |-- 16
 // 14 -- | GND   IO3 |-- 15
 
-class AT28C256 : public EepromWiring {
-  static constexpr const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
-  static constexpr const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  static constexpr const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27 };  // !CE, !OE, !WE, [!BSY]
-  static constexpr const uint8_t NC_PINS[] = {};
+class AT28C256 {
+  // static const uint8_t ADDRESS_PINS[] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
+  // static const uint8_t DATA_PINS[] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+  // static const uint8_t MANAGEMENT_PINS[] = { 20, 22, 27 };  // !CE, !OE, !WE, [!BSY]
+  // static const uint8_t NC_PINS[] = {};
 };
 
+
+class WiringController {
+public:
+  static const size_t MAX_BOARD_BUS_SIZE = 28;    // DIP28
+  static const size_t MAX_ADDRESS_BUS_SIZE = 15;  // AT28C256: AO to A14
+
+  WiringController(const WiringType wiring_type)
+    : _wiring_type(wiring_type) {}
+
+  void set_chip_type(const ChipType chip_type) {
+    _chip_type = chip_type;
+  }
+  ChipType get_chip_type() {
+    return _chip_type;
+  }
+
+  size_t get_board_bus_pins(PIN_NO* pins_array, const size_t array_size) {
+    size_t board_bus_size = 0;
+    PIN_NO* board_bus_pins = 0;
+
+    switch (_wiring_type) {
+      case WiringType::DIP28:
+        board_bus_size = 28;
+        board_bus_pins = DIP28_WIRING;
+        break;
+      default:
+        break;
+    }
+
+    if (board_bus_size == 0 || board_bus_pins == 0) {
+      return -1;
+    }
+    if (array_size < board_bus_size) {
+      return -1;
+    }
+
+    // memcpu
+    for (size_t i = 0; i < board_bus_size; i++) {
+      pins_array[i] = board_bus_pins[i];
+    }
+    return board_bus_size;
+  }
+
+  size_t get_address_bus_pins(PIN_NO* pins_array, const size_t array_size) {
+    size_t address_bus_size = 0;
+    PIN_NO* address_bus_pins = 0;
+    PIN_NO* dip_wiring_mapping = 0;
+
+    switch (_wiring_type) {
+      case WiringType::DIP28:
+        dip_wiring_mapping = DIP28_WIRING;
+        switch (_chip_type) {
+          case ChipType::AT28C64:
+            address_bus_size = AT28C64_Wiring::ADDRESS_BUS_SIZE;
+            address_bus_pins = AT28C64_Wiring::ADDRESS_BUS_PINS;
+            break;
+          default:
+            break;
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (dip_wiring_mapping == 0) {
+      return -1;
+    }
+    if (address_bus_size == 0 || address_bus_pins == 0) {
+      return -1;
+    }
+    if (array_size < address_bus_size) {
+      return -1;
+    }
+
+    // mapping
+    for (size_t i = 0; i < address_bus_size; i++) {
+      // mapping starts from 0, but PIN numbers start from 1 for convenience
+      pins_array[i] = dip_wiring_mapping[address_bus_pins[i] - 1];
+    }
+    return address_bus_size;
+  }
+
+private:
+  WiringType _wiring_type;
+  ChipType _chip_type;
+};
 
 // ========================================
 // !!! REDEFINE FOR YOUR WIRING SCHEME
