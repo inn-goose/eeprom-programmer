@@ -204,27 +204,3 @@ export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
 vimdiff tmp/zenith_zt1_eeprom.hex tmp/dump_eeprom.hex
 ```
-
-### Read Noise
-
-```bash
-source venv/bin/activate
-export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
-
-# read w/o reset
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom.bin --attempts 3
-
-# read w/ reset
-for i in `seq 1 3`; do ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 -r tmp/dump_eeprom_$i.bin; done
-
-# convert to HEX
-for i in `seq 1 3`; do xxd tmp/dump_eeprom_$i.bin > tmp/dump_eeprom_$i.hex; done
-
-# compare
-
-vimdiff tmp/dump_eeprom_[1,3].hex
-
-vimdiff tmp/dump_eeprom_*.hex
-
-vimdiff tmp/dump_eeprom_1.hex tmp/dump_xgecu.hex
-```

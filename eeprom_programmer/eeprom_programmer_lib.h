@@ -9,6 +9,10 @@ using namespace EepromProgrammerWiring;
 
 namespace EepromProgrammerLibrary {
 
+// TODO: remove HACK
+const uint8_t __EEPROM_DATA_PINS[8] = { 49, 51, 53, 46, 44, 42, 40, 38 };
+
+
 // Error Codes
 
 enum ErrorCode : int {
@@ -42,7 +46,7 @@ public:
   EepromProgrammer(
     // wiring type
     const WiringType wiring_type,
-    // data
+    // TODO: remove HACK
     const uint8_t* dataPins,
     // control
     const uint8_t chipEnablePin,
@@ -128,7 +132,10 @@ private:
   // address bus
   PIN_NO _address_bus_pins[WiringController::MAX_ADDRESS_BUS_SIZE];
   size_t _address_bus_size;
-  // data
+  // data bus
+  PIN_NO _data_bus_pins[WiringController::MAX_DATA_BUS_SIZE];
+  size_t _data_bus_size;
+  // TODO: remove HACK
   uint8_t _dataPins[_EEPROM_28C64_DATA_BUS_SIZE];
   // control
   uint8_t _chipEnablePin;    // !CE
@@ -197,7 +204,7 @@ private:
 EepromProgrammer::EepromProgrammer(
   // wiring type
   const WiringType wiring_type,
-  // data
+  // TODO: remove HACK
   const uint8_t* dataPins,
   // control
   const uint8_t chipEnablePin,
@@ -208,8 +215,10 @@ EepromProgrammer::EepromProgrammer(
   // non-connected
   const uint8_t* nonConnectedPins)
   : _wiring_controller(wiring_type) {
-  // data
-  memcpy(_dataPins, dataPins, _EEPROM_28C64_DATA_BUS_SIZE);
+
+  // TODO: remove HACK
+  memcpy(_dataPins, __EEPROM_DATA_PINS, 8);
+
   // control
   _chipEnablePin = chipEnablePin;
   _outputEnablePin = outputEnablePin;
@@ -226,6 +235,10 @@ EepromProgrammer::EepromProgrammer(
   _pins_initialized = false;
   _chip_ready = false;
   _has_rdy_busy_pin = false;
+
+  // pins
+  _address_bus_size = 0;
+  _data_bus_size = 0;
 
   // mode
   _memory_size_bytes = 0;
@@ -246,13 +259,13 @@ void EepromProgrammer::_setAddressBusMode() {
 
 void EepromProgrammer::_setDataBusMode(const EepromProgrammer::_DataBusMode mode) {
   if (mode == EepromProgrammer::_DataBusMode::READ) {
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      pinMode(_dataPins[i], INPUT_PULLUP);
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], INPUT_PULLUP);
     }
 
   } else if (mode == EepromProgrammer::_DataBusMode::WRITE) {
-    for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-      pinMode(_dataPins[i], OUTPUT);
+    for (int i = 0; i < _data_bus_size; i++) {
+      pinMode(_data_bus_pins[i], OUTPUT);
     }
   }
 }
@@ -267,18 +280,20 @@ void EepromProgrammer::_writeAddress(const uint32_t address) {
 }
 
 uint8_t EepromProgrammer::_readData() {
-  bool b_data[_EEPROM_28C64_DATA_BUS_SIZE];
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    b_data[i] = digitalRead(_dataPins[i]) == HIGH ? 1 : 0;
+  const size_t c_data_bus_size = _data_bus_size;
+  bool b_data[c_data_bus_size];
+  for (int i = 0; i < c_data_bus_size; i++) {
+    b_data[i] = digitalRead(_data_bus_pins[i]) == HIGH ? 1 : 0;
   }
-  return _bitsArrayToData(b_data, _EEPROM_28C64_DATA_BUS_SIZE);
+  return _bitsArrayToData(b_data, c_data_bus_size);
 }
 
 void EepromProgrammer::_writeData(const uint8_t data) {
-  bool b_data[_EEPROM_28C64_DATA_BUS_SIZE];
-  _dataToBitsArray(data, b_data, _EEPROM_28C64_DATA_BUS_SIZE);
-  for (int i = 0; i < _EEPROM_28C64_DATA_BUS_SIZE; i++) {
-    digitalWrite(_dataPins[i], b_data[i]);
+  const size_t c_data_bus_size = _data_bus_size;
+  bool b_data[c_data_bus_size];
+  _dataToBitsArray(data, b_data, c_data_bus_size);
+  for (int i = 0; i < c_data_bus_size; i++) {
+    digitalWrite(_data_bus_pins[i], b_data[i]);
   }
 }
 
@@ -322,6 +337,12 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
   _memory_size_bytes = pow(2, _address_bus_size);
+
+  // data bus
+  _data_bus_size = _wiring_controller.get_data_bus_pins(_data_bus_pins, WiringController::MAX_DATA_BUS_SIZE);
+  if (_data_bus_size <= 0) {
+    return ErrorCode::PINS_NOT_INITIALIZED;
+  }
 
   String _chip_type = chip_type;
 
