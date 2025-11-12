@@ -46,23 +46,23 @@ public:
   ErrorCode init_chip(const String& chip_type);
 
   // settings
-  inline int get_memory_size_bytes() {
+  inline uint32_t get_memory_size_bytes() {
     return _memory_size_bytes;
   }
-  inline int get_page_size_bytes() {
+  inline uint32_t get_page_size_bytes() {
     return _page_size_bytes;
   }
-  inline int get_max_page_size() {
+  inline uint32_t get_max_page_size() {
     return _MAX_PAGE_SIZE;
   }
 
   // read
-  ErrorCode set_read_mode(const int page_size_bytes);
+  ErrorCode set_read_mode(const uint32_t page_size_bytes);
   ErrorCode read_page(const int page_no, uint8_t* bytes);
   ErrorCode read_byte(const uint32_t address, uint8_t& byte);
 
   // write
-  ErrorCode set_write_mode(const int page_size_bytes);
+  ErrorCode set_write_mode(const uint32_t page_size_bytes);
   ErrorCode write_page(const int page_no, const uint8_t* bytes, const size_t bytes_size);
   ErrorCode write_byte(const uint32_t address, const uint8_t data);
 
@@ -100,7 +100,7 @@ public:
   }
 
 private:
-  static const int _MAX_PAGE_SIZE = 64;
+  static const uint32_t _MAX_PAGE_SIZE = 64;
 
   // tune this constant if write is not working
   // if the waiting is insufficient, data propagation may be incomplete
@@ -137,8 +137,8 @@ private:
   bool _chip_ready;
 
   // modes
-  int _memory_size_bytes;
-  int _page_size_bytes;
+  uint32_t _memory_size_bytes;
+  uint32_t _page_size_bytes;
   bool _read_mode;
   bool _write_mode;
 
@@ -246,7 +246,7 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   if (_address_bus_size <= 0) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
-  _memory_size_bytes = pow(2, _address_bus_size);
+  _memory_size_bytes = (uint32_t)(1) << _address_bus_size;
 
   _setAddressBusMode();
   // reset address
@@ -292,7 +292,7 @@ ErrorCode EepromProgrammer::init_chip(const String& chip_type) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromProgrammer::set_read_mode(const int page_size_bytes) {
+ErrorCode EepromProgrammer::set_read_mode(const uint32_t page_size_bytes) {
   if (!_pins_initialized) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
@@ -325,12 +325,12 @@ ErrorCode EepromProgrammer::read_page(const int page_no, uint8_t* bytes) {
   if (!_read_mode) {
     return ErrorCode::READ_MODE_DISABLED;
   }
-  const int max_page_no = _memory_size_bytes / _page_size_bytes;
+  const uint32_t max_page_no = _memory_size_bytes / _page_size_bytes;
   if (page_no < 0 || page_no >= max_page_no) {
     return ErrorCode::INVALID_PAGE_NO;
   }
 
-  const int start_address = page_no * _page_size_bytes;
+  const uint32_t start_address = page_no * _page_size_bytes;
   for (int i = 0; i < _page_size_bytes; i++) {
     uint8_t byte = -1;
     ErrorCode code = read_byte(start_address + i, byte);
@@ -384,7 +384,7 @@ ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
+ErrorCode EepromProgrammer::set_write_mode(const uint32_t page_size_bytes) {
   if (!_pins_initialized) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
@@ -421,12 +421,12 @@ ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes, 
   if (bytes_size <= 0 || bytes_size > _page_size_bytes) {
     return ErrorCode::INVALID_PAGE_SIZE;
   }
-  const int max_page_no = _memory_size_bytes / _page_size_bytes;
+  const uint32_t max_page_no = _memory_size_bytes / _page_size_bytes;
   if (page_no < 0 || page_no >= max_page_no) {
     return ErrorCode::INVALID_PAGE_NO;
   }
 
-  const int start_address = page_no * _page_size_bytes;
+  const uint32_t start_address = page_no * _page_size_bytes;
   for (int i = 0; i < bytes_size; i++) {
     ErrorCode code = write_byte(start_address + i, bytes[i]);
     if (code != ErrorCode::SUCCESS) {
