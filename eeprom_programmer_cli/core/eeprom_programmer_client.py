@@ -86,6 +86,9 @@ class EepromProgrammerClient:
     def _write_data(self, write_data: bytes):
         page_size = self._WRITE_PAGE_SIZE
         pages_total = int(len(write_data) / page_size)
+        # last page
+        if len(write_data) > pages_total * page_size:
+            pages_total += 1
 
         # set WRITE mode
         self._set_write_mode(page_size)
@@ -109,11 +112,11 @@ class EepromProgrammerClient:
 
         self._write_data(write_data)
 
-    def write_data_to_file(self, file_path: str):
+    def fetch_write_data_from_file(self, file_path: str) -> bytes:
         if not file_path:
             raise EepromProgrammerClientError(
                 "failed to write data, file_path is empty")
-        
+
         write_data = None
         with open(file_path, "rb") as f:
             write_data = bytes(f.read())
@@ -125,5 +128,11 @@ class EepromProgrammerClient:
         if len(write_data) > memory_size:
             raise EepromProgrammerClientError(
                 "failed to write data, source is bigger than the chip memory size")
-        
+
+        if len(write_data) < memory_size:
+            print(f"incorrect write data size: {len(write_data)} (chip memory size is {memory_size})")
+
+        return write_data
+
+    def write_data_to_file(self, write_data: bytes):
         self._write_data(write_data)

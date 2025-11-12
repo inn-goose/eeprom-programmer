@@ -22,7 +22,7 @@ public:
   void send_error(int id, int error_code, const char* error_message, const char* error_data);
 
   // helpers
-  static void json_array_to_byte_array(const String& raw_json, uint8_t* byte_array, int array_size);
+  static size_t json_array_to_byte_array(const String& raw_json, uint8_t* byte_array, size_t array_size);
 
 private:
   // default baudrate
@@ -135,13 +135,17 @@ void SerialJsonRpcBoard::send_result_ints(int id, int32_t* buffer, int buffer_si
   _send_response(response);
 }
 
-static void SerialJsonRpcBoard::json_array_to_byte_array(const String& raw_json, uint8_t* byte_array, int array_size) {
+static size_t SerialJsonRpcBoard::json_array_to_byte_array(const String& raw_json, uint8_t* byte_array, size_t array_size) {
   DynamicJsonDocument json_doc(raw_json.length());
   deserializeJson(json_doc, raw_json);
   JsonArray json_array = json_doc.as<JsonArray>();
-  for (int i = 0; i < array_size; i++) {
+  if (json_array.size() > array_size) {
+    return -1;
+  }
+  for (size_t i = 0; i < json_array.size(); i++) {
     byte_array[i] = json_array[i].as<uint8_t>();
   }
+  return json_array.size();
 }
 
 void SerialJsonRpcBoard::send_error(int id, int error_code, const char* error_message, const char* error_data) {

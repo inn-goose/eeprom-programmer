@@ -60,7 +60,7 @@ public:
 
   // write
   ErrorCode set_write_mode(const int page_size_bytes);
-  ErrorCode write_page(const int page_no, const uint8_t* bytes);
+  ErrorCode write_page(const int page_no, const uint8_t* bytes, const size_t bytes_size);
   ErrorCode write_byte(const uint32_t address, const uint8_t data);
 
   // debugging
@@ -405,7 +405,7 @@ ErrorCode EepromProgrammer::set_write_mode(const int page_size_bytes) {
   return ErrorCode::SUCCESS;
 }
 
-ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes) {
+ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes, const size_t bytes_size) {
   if (!_pins_initialized) {
     return ErrorCode::PINS_NOT_INITIALIZED;
   }
@@ -415,13 +415,16 @@ ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes) 
   if (!_write_mode) {
     return ErrorCode::WRITE_MODE_DISABLED;
   }
+  if (bytes_size <= 0 || bytes_size > _page_size_bytes) {
+    return ErrorCode::INVALID_PAGE_SIZE;
+  }
   const int max_page_no = _memory_size_bytes / _page_size_bytes;
   if (page_no < 0 || page_no >= max_page_no) {
     return ErrorCode::INVALID_PAGE_NO;
   }
 
   const int start_address = page_no * _page_size_bytes;
-  for (int i = 0; i < _page_size_bytes; i++) {
+  for (int i = 0; i < bytes_size; i++) {
     ErrorCode code = write_byte(start_address + i, bytes[i]);
     if (code != ErrorCode::SUCCESS) {
       return ErrorCode::WRITE_FAILED;

@@ -55,13 +55,17 @@ def read(programmer_client: eeprom_programmer_client.EepromProgrammerClient, fil
     return 0
 
 
-def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, file_path: str):
+def fetch_write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, file_path: str) -> bytes:
     print(f"write data: {file_path}")
 
+    return programmer_client.fetch_write_data_from_file(file_path)
+
+
+def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, write_data: bytes):
     ts = time.time()
 
     try:
-        programmer_client.write_data_to_file(file_path)
+        programmer_client.write_data_to_file(write_data)
     except Exception as ex:
         print(f"write data: failed, {str(ex)}")
         return 1
@@ -129,11 +133,12 @@ def cli() -> int:
         return erase(programmer_client, args.erase_pattern)
 
     elif args.write is not None:
+        bin_data = fetch_write(programmer_client, args.write)
         if not args.skip_erase:
             erase_ret = erase(programmer_client, args.erase_pattern)
             if erase_ret != 0:
                 return erase_ret
-        return write(programmer_client, args.write)
+        return write(programmer_client, bin_data)
 
     else:
         print("unknown mode")

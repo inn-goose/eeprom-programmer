@@ -66,8 +66,8 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_programmer.get_page_size_bytes();
-    uint8_t buffer[buffer_size];
+    const size_t page_size = eeprom_programmer.get_page_size_bytes();
+    uint8_t buffer[page_size];
 
     ErrorCode code = eeprom_programmer.read_page(page_no, buffer);
     if (code != ErrorCode::SUCCESS) {
@@ -78,7 +78,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
       return;
     }
 
-    rpc_board.send_result_bytes(request_id, buffer, buffer_size);
+    rpc_board.send_result_bytes(request_id, buffer, page_size);
 
   } else if (method == "set_write_mode") {
     if (params_size != 1) {
@@ -108,11 +108,11 @@ void rpc_processor(int request_id, const String &method, const String params[], 
     }
     const int page_no = atoi(params[0].c_str());
 
-    const int buffer_size = eeprom_programmer.get_page_size_bytes();
-    uint8_t buffer[buffer_size];
-    SerialJsonRpcBoard::json_array_to_byte_array(params[1], buffer, buffer_size);
+    const size_t page_size = eeprom_programmer.get_page_size_bytes();
+    uint8_t buffer[page_size];
+    const size_t json_array_size = SerialJsonRpcBoard::json_array_to_byte_array(params[1], buffer, page_size);
 
-    ErrorCode code = eeprom_programmer.write_page(page_no, buffer);
+    ErrorCode code = eeprom_programmer.write_page(page_no, buffer, json_array_size);
     if (code != ErrorCode::SUCCESS) {
       const size_t error_data_buf_size = 70;
       char error_data_buf[error_data_buf_size];
@@ -123,7 +123,7 @@ void rpc_processor(int request_id, const String &method, const String params[], 
 
     const size_t result_buf_size = 50;
     char result_buf[result_buf_size];
-    snprintf(result_buf, result_buf_size, "WRITE success. %d bytes written", buffer_size);
+    snprintf(result_buf, result_buf_size, "WRITE success. %d bytes written", json_array_size);
     rpc_board.send_result_string(request_id, result_buf);
 
   } else {
