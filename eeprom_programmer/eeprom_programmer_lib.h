@@ -52,6 +52,9 @@ public:
   inline int get_page_size_bytes() {
     return _page_size_bytes;
   }
+  inline int get_max_page_size() {
+    return _MAX_PAGE_SIZE;
+  }
 
   // read
   ErrorCode set_read_mode(const int page_size_bytes);

@@ -39,6 +39,7 @@ class EepromProgrammerClient:
                 f"empty chip settings for {chip_type}")
         self.chip_settings = {
             "memory_size": chip_settings[0],
+            "max_page_size": chip_settings[1],
         }
         print(f"chip settings: {self.chip_settings}")
 
