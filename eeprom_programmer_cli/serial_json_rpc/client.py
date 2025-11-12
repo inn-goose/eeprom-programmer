@@ -81,6 +81,8 @@ class SerialJsonRpcClient:
         }
         if params:
             request["params"] = params
+        else:
+            request["params"] = []
         self.json_rpc_request_id += 1
         return request
 

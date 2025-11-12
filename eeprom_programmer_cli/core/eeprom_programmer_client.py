@@ -83,8 +83,8 @@ class EepromProgrammerClient:
         except Exception as ex:
             raise EepromProgrammerClientError(
                 f"failed to set WRITE mode with: {ex}")
-        
-    def _write_data(self, write_data: bytes):
+
+    def _write_data(self, write_data: bytes, collect_write_performance: bool = False):
         page_size = self._WRITE_PAGE_SIZE
         pages_total = int(len(write_data) / page_size)
         # last page
@@ -97,13 +97,20 @@ class EepromProgrammerClient:
         # convert bytes to array
         write_data = [b for b in write_data]
 
+        if collect_write_performance:
+            write_performance = []
+
         for page_no in range(pages_total):
             address = page_no * page_size
             page_data = write_data[address:(address+page_size)]
             self.json_rpc_client.send_request("write_page", [page_no, page_data])
+            if collect_write_performance:
+                write_performance.extend(self.json_rpc_client.send_request("get_write_perf", None))
 
+        if collect_write_performance:
+            print("AVG write time {:.2f} ms".format(sum(write_performance) / len(write_performance)))
 
-    def erase_data(self, erase_pattern: int):
+    def erase_data(self, erase_pattern: int, collect_write_performance: bool = False):
         if erase_pattern < 0 or erase_pattern > 255:
             raise EepromProgrammerClientError(
                 f"failed to erase data, invalid pattern: {erase_pattern}")
@@ -111,7 +118,7 @@ class EepromProgrammerClient:
         memory_size = self.chip_settings["memory_size"]
         write_data = bytes([erase_pattern] * memory_size)
 
-        self._write_data(write_data)
+        self._write_data(write_data, collect_write_performance)
 
     def fetch_write_data_from_file(self, file_path: str) -> bytes:
         if not file_path:
@@ -135,5 +142,5 @@ class EepromProgrammerClient:
 
         return write_data
 
-    def write_data_to_file(self, write_data: bytes):
-        self._write_data(write_data)
+    def write_data_to_file(self, write_data: bytes, collect_write_performance: bool = False):
+        self._write_data(write_data, collect_write_performance)

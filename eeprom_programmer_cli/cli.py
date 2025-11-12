@@ -61,11 +61,11 @@ def fetch_write(programmer_client: eeprom_programmer_client.EepromProgrammerClie
     return programmer_client.fetch_write_data_from_file(file_path)
 
 
-def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, write_data: bytes):
+def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, write_data: bytes, collect_write_performance: bool):
     ts = time.time()
 
     try:
-        programmer_client.write_data_to_file(write_data)
+        programmer_client.write_data_to_file(write_data, collect_write_performance)
     except Exception as ex:
         print(f"write data: failed, {str(ex)}")
         return 1
@@ -76,7 +76,7 @@ def write(programmer_client: eeprom_programmer_client.EepromProgrammerClient, wr
     return 0
 
 
-def erase(programmer_client: eeprom_programmer_client.EepromProgrammerClient, erase_pattern_str: str):
+def erase(programmer_client: eeprom_programmer_client.EepromProgrammerClient, erase_pattern_str: str, collect_write_performance: bool):
     erase_pattern = 255  # FF
     if erase_pattern_str:
         try:
@@ -93,7 +93,7 @@ def erase(programmer_client: eeprom_programmer_client.EepromProgrammerClient, er
     ts = time.time()
 
     try:
-        programmer_client.erase_data(erase_pattern)
+        programmer_client.erase_data(erase_pattern, collect_write_performance)
     except Exception as ex:
         print(f"erase data: failed, {str(ex)}")
         return 1
@@ -115,6 +115,7 @@ def cli() -> int:
     parser.add_argument("--skip-erase", action="store_true")
     parser.add_argument("--erase", action="store_true")
     parser.add_argument("--erase-pattern", type=str, required=False)
+    parser.add_argument("--collect-write-performance", action="store_true")
     args = parser.parse_args()
 
     # connect
@@ -130,15 +131,15 @@ def cli() -> int:
         return read(programmer_client, args.read)
 
     elif args.erase:
-        return erase(programmer_client, args.erase_pattern)
+        return erase(programmer_client, args.erase_pattern, args.collect_write_performance)
 
     elif args.write is not None:
         bin_data = fetch_write(programmer_client, args.write)
         if not args.skip_erase:
-            erase_ret = erase(programmer_client, args.erase_pattern)
+            erase_ret = erase(programmer_client, args.erase_pattern, args.collect_write_performance)
             if erase_ret != 0:
                 return erase_ret
-        return write(programmer_client, bin_data)
+        return write(programmer_client, bin_data, args.collect_write_performance)
 
     else:
         print("unknown mode")

@@ -67,8 +67,17 @@ public:
   ErrorCode write_byte(const uint32_t address, const uint8_t data);
 
   // debugging
-  unsigned int get_write_op_wait_time_usec() {
+  unsigned long get_write_op_wait_time_usec() {
     return _write_op_wait_time_usec;
+  }
+
+  void get_write_op_wait_time_usec_for_page(unsigned long* wait_time_for_page, const size_t buffer_size) {
+    if (buffer_size <= 0 || buffer_size > _MAX_PAGE_SIZE) {
+      return;
+    }
+    for (int i; i < buffer_size; i ++) {
+      wait_time_for_page[i] = _write_op_wait_time_usec_for_page[i];
+    }
   }
 
   int get_write_op_wait_cycles() {
@@ -104,7 +113,9 @@ private:
 
   // tune this constant if write is not working
   // if the waiting is insufficient, data propagation may be incomplete
-  static const unsigned int _WRITE_SUCCESS_WAITING_TIME_USEC = int(1.4 * 1000);
+  // AT28C64 write time is about 400 us
+  // AT28C256 write time is about 6000 us
+  static const unsigned int _WRITE_SUCCESS_WAITING_TIME_USEC = int(20.0 * 1000);
 
   enum _DataBusMode {
     READ,
@@ -144,6 +155,7 @@ private:
 
   // debugging
   unsigned long _write_op_wait_time_usec;
+  unsigned long _write_op_wait_time_usec_for_page[_MAX_PAGE_SIZE];
   int _write_op_wait_cycles;
 
   // bit operations
@@ -204,6 +216,9 @@ EepromProgrammer::EepromProgrammer(const WiringType wiring_type)
 
   // performance
   _write_op_wait_time_usec = 0;
+  for (int i = 0; i < _MAX_PAGE_SIZE; i++) {
+    _write_op_wait_time_usec_for_page[i] = 0;
+  }
   _write_op_wait_cycles = -1;
 }
 
@@ -221,6 +236,8 @@ ErrorCode EepromProgrammer::init_programmer() {
       continue;
     }
     pinMode(pin_no, INPUT_PULLUP);
+    // pinMode(pin_no, OUTPUT);
+    // digitalWrite(pin_no, LOW);
   }
 
   _pins_initialized = true;
@@ -378,9 +395,6 @@ ErrorCode EepromProgrammer::read_byte(const uint32_t address, uint8_t& byte) {
   // (7) chip disable
   digitalWrite(_chip_enable_pin, HIGH);
 
-  // (8) reset address
-  _writeAddress(0);
-
   return ErrorCode::SUCCESS;
 }
 
@@ -432,6 +446,7 @@ ErrorCode EepromProgrammer::write_page(const int page_no, const uint8_t* bytes, 
     if (code != ErrorCode::SUCCESS) {
       return ErrorCode::WRITE_FAILED;
     }
+    _write_op_wait_time_usec_for_page[i] = _write_op_wait_time_usec;
   }
 
   return ErrorCode::SUCCESS;
@@ -533,9 +548,6 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
 
   // (7) chip disable
   digitalWrite(_chip_enable_pin, HIGH);
-
-  // (8) reset address
-  _writeAddress(0);
 
   return ErrorCode::SUCCESS;
 }

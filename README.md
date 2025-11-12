@@ -75,6 +75,7 @@ Arduino IDE's *Serial Monitor* on `115200` baud
 {"jsonrpc":"2.0", "id":0, "method": "set_write_mode", "params": [4]}
 {"jsonrpc":"2.0", "id":0, "method": "write_page","params": [0, [120, 130, 140, 150]]}
 {"jsonrpc":"2.0", "id":0, "method": "write_page","params": [50, [20, 30, 40, 50]]}
+{"jsonrpc":"2.0", "id":0, "method": "get_write_perf","params": []}
 ```
 
 #### Read Operation Sequence
@@ -155,13 +156,13 @@ source venv/bin/activate
 export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # write data from file
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin
 
 # skip erase
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --skip-erase
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --skip-erase
 
 # custom erase pattern
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --erase-pattern CC
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --erase-pattern CC
 ```
 
 
@@ -173,10 +174,13 @@ Use the [`minipro`](https://formulae.brew.sh/formula/minipro) utility to perform
 brew install minipro
 
 # write the "real" dump to the chip
-minipro --device AT28C64 -s -u --write tmp/zenith_zt1_eeprom.bin
+minipro --device AT28C64 -s -u --write test_bin/4_echo_orbit.bin
+minipro --device AT28C64 -s -u --write test_bin/64_the_red_migration.bin
+minipro --device AT28C256 -s -u --write test_bin/256_the_geometry_of_flight.bin
 
 # read the data
 minipro --device AT28C64 -u --read tmp/dump_xgecu.bin
+minipro --device AT28C256 -u --read tmp/dump_xgecu.bin
 
 # convert to HEX
 xxd tmp/dump_xgecu.bin > tmp/dump_xgecu.hex
@@ -196,11 +200,11 @@ source venv/bin/activate
 export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 
 # >> remove jumper wire
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write tmp/zenith_zt1_eeprom.bin --erase-pattern BB
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --erase-pattern BB
 
 # >> add jumper wire
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
 
 xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
-vimdiff tmp/zenith_zt1_eeprom.hex tmp/dump_eeprom.hex
+vimdiff test_bin/4_echo_orbit.hex tmp/4_echo_orbit.hex
 ```
