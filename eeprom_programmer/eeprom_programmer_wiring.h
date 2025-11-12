@@ -11,8 +11,10 @@ enum WiringType : int {
 };
 
 enum ChipType : int {
-  AT28C64 = 1,
-  UNKNOWN = 1000
+  // DIP28
+  AT28C64 = 100,
+  AT28C256 = 101,
+  UNKNOWN = 10000
 };
 
 ChipType str_to_chip_type(const String& chip_type) {
@@ -20,6 +22,8 @@ ChipType str_to_chip_type(const String& chip_type) {
   _chip_type.toUpperCase();
   if (_chip_type == "AT28C64") {
     return ChipType::AT28C64;
+  } else if (_chip_type == "AT28C256") {
+    return ChipType::AT28C256;
   }
   return ChipType::UNKNOWN;
 }
@@ -102,7 +106,7 @@ const PIN_NO DIP28_WIRING[28] = {
 // 14 -- | GND   IO3 |-- 15
 
 namespace AT28C64_Wiring {
-static const size_t ADDRESS_BUS_SIZE = 13;
+static const size_t ADDRESS_BUS_SIZE = 13;  // A0-A12
 static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2 };
 static const size_t DATA_BUS_SIZE = 8;
 static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18, 19 };
@@ -113,7 +117,7 @@ static const PIN_NO MANAGEMENT_PINS[MANAGEMENT_SIZE] = { 20, 22, 27, 1 };  // !C
 
 // AT28C256 / DIP28
 
-// 1  -- | A14  VCC |-- VCC
+// 1  -- | A14   VCC |-- VCC
 // 2  -- | A12   !WE |-- 27
 // 3  -- | A7    A13 |-- 26
 // 4  -- | A6     A8 |-- 25
@@ -128,13 +132,13 @@ static const PIN_NO MANAGEMENT_PINS[MANAGEMENT_SIZE] = { 20, 22, 27, 1 };  // !C
 // 13 -- | IO2   IO4 |-- 16
 // 14 -- | GND   IO3 |-- 15
 
-class AT28C256 {
-  static const size_t ADDRESS_BUS_SIZE = 15;
-  static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
-  static const size_t DATA_BUS_SIZE = 8;
-  static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18, 19 };
-  static const size_t MANAGEMENT_SIZE = 4;
-  static const PIN_NO MANAGEMENT_PINS[MANAGEMENT_SIZE] = { 20, 22, 27, 0 };  // !CE, !OE, !WE, [!BSY]
+namespace AT28C256_Wiring {
+static const size_t ADDRESS_BUS_SIZE = 15;  // A0-A14
+static const PIN_NO ADDRESS_BUS_PINS[ADDRESS_BUS_SIZE] = { 10, 9, 8, 7, 6, 5, 4, 3, 25, 24, 21, 23, 2, 26, 1 };
+static const size_t DATA_BUS_SIZE = 8;
+static const PIN_NO DATA_BUS_PINS[DATA_BUS_SIZE] = { 11, 12, 13, 15, 16, 17, 18, 19 };
+static const size_t MANAGEMENT_SIZE = 4;
+static const PIN_NO MANAGEMENT_PINS[MANAGEMENT_SIZE] = { 20, 22, 27, 0 };  // !CE, !OE, !WE, [!BSY]
 };
 
 
@@ -195,6 +199,10 @@ public:
             address_bus_size = AT28C64_Wiring::ADDRESS_BUS_SIZE;
             address_bus_pins = AT28C64_Wiring::ADDRESS_BUS_PINS;
             break;
+          case ChipType::AT28C256:
+            address_bus_size = AT28C256_Wiring::ADDRESS_BUS_SIZE;
+            address_bus_pins = AT28C256_Wiring::ADDRESS_BUS_PINS;
+            break;
           default:
             break;
         }
@@ -234,6 +242,10 @@ public:
             data_bus_size = AT28C64_Wiring::DATA_BUS_SIZE;
             data_bus_pins = AT28C64_Wiring::DATA_BUS_PINS;
             break;
+          case ChipType::AT28C256:
+            data_bus_size = AT28C256_Wiring::DATA_BUS_SIZE;
+            data_bus_pins = AT28C256_Wiring::DATA_BUS_PINS;
+            break;
           default:
             break;
         }
@@ -272,6 +284,10 @@ public:
           case ChipType::AT28C64:
             management_size = AT28C64_Wiring::MANAGEMENT_SIZE;
             management_pins = AT28C64_Wiring::MANAGEMENT_PINS;
+            break;
+          case ChipType::AT28C256:
+            management_size = AT28C256_Wiring::MANAGEMENT_SIZE;
+            management_pins = AT28C256_Wiring::MANAGEMENT_PINS;
             break;
           default:
             break;
