@@ -64,7 +64,7 @@ public:
   ErrorCode write_byte(const uint32_t address, const uint8_t data);
 
   // debugging
-  int get_write_op_wait_time_usec() {
+  unsigned int get_write_op_wait_time_usec() {
     return _write_op_wait_time_usec;
   }
 
@@ -101,7 +101,7 @@ private:
 
   // tune this constant if write is not working
   // if the waiting is insufficient, data propagation may be incomplete
-  static const int _WRITE_SUCCESS_WAITING_TIME_USEC = 1.4 * 1000;
+  static const unsigned int _WRITE_SUCCESS_WAITING_TIME_USEC = int(1.4 * 1000);
 
   enum _DataBusMode {
     READ,
@@ -140,7 +140,7 @@ private:
   bool _write_mode;
 
   // debugging
-  int _write_op_wait_time_usec;
+  unsigned long _write_op_wait_time_usec;
   int _write_op_wait_cycles;
 
   // bit operations
@@ -464,7 +464,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   digitalWrite(_write_enable_pin, HIGH);
 
   // (6) wait until successfull data propagation
-  int _write_op_start_usec = micros();
+  const unsigned long write_op_start_usec = micros();
   _write_op_wait_time_usec = 0;
   _write_op_wait_cycles = -1;
   if (_rdy_busy_pin > 0) {
@@ -479,10 +479,10 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
       // device is in !BUSY state
       // use the READY/!BUSY pin status to wait for the Write Cycle End
       _write_op_wait_cycles = 0;
-      const int delay_usec = 100;
+      const unsigned int delay_usec = 100;
 
       int prevBusyState = currBusyState;
-      for (int i = 0; i < _WRITE_SUCCESS_WAITING_TIME_USEC / delay_usec; i++) {
+      while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
         delayMicroseconds(delay_usec);
         _write_op_wait_cycles += 1;
 
@@ -505,9 +505,9 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
     _setDataBusMode(_DataBusMode::READ);
 
     _write_op_wait_cycles = 0;
-    const int delay_usec = 50;
+    const unsigned int delay_usec = 50;
 
-    for (int i = 0; i < _WRITE_SUCCESS_WAITING_TIME_USEC / delay_usec; i++) {
+    while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
       delayMicroseconds(delay_usec);
       _write_op_wait_cycles += 1;
 
@@ -526,7 +526,7 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
 
     _setDataBusMode(_DataBusMode::WRITE);
   }
-  _write_op_wait_time_usec = micros() - _write_op_start_usec;
+  _write_op_wait_time_usec = micros() - write_op_start_usec;
 
   // (7) chip disable
   digitalWrite(_chip_enable_pin, HIGH);
