@@ -14,20 +14,6 @@ class EepromProgrammerClient:
     def __init__(self, json_rpc_client: client.SerialJsonRpcClient):
         self.json_rpc_client = json_rpc_client
 
-    @staticmethod
-    def _to_decoded(val):
-        if (val >= 33 and val <= 126) or val == 20:
-            return chr(val)
-        return '.'
-
-    @classmethod
-    def _dump_page(cls, page_no, page_size, data):
-        address = page_size * page_no
-        hex = "".join([f"{r:02x}" + (" " if (n % 2 == 1) else "")
-                       for (n, r) in enumerate(data)])
-        decoded = "".join([cls._to_decoded(r) for r in data])
-        print(f"{address:08x}: {hex}{decoded}")
-
     def init_chip(self, chip_type: str):
         try:
             chip_settings = self.json_rpc_client.send_request("init_chip", [chip_type])
@@ -51,7 +37,7 @@ class EepromProgrammerClient:
             raise EepromProgrammerClientError(
                 f"failed to set READ mode with: {ex}")
 
-    def _read_data(self) -> bytes:
+    def read_data(self) -> bytes:
         page_size = self._READ_PAGE_SIZE
         memory_size = self.chip_settings["memory_size"]
         pages_total = int(memory_size / page_size)
@@ -59,22 +45,12 @@ class EepromProgrammerClient:
         # set READ mode
         self._set_read_mode(page_size)
 
-        read_data = []
+        output_data = []
         for page_no in range(pages_total):
             resp = self.json_rpc_client.send_request("read_page", [page_no])
-            read_data += resp
+            output_data += resp
 
-        return read_data
-
-    def read_data_to_file(self, file_path: str):
-        if not file_path:
-            raise EepromProgrammerClientError(
-                "failed to read data, file_path is empty")
-
-        read_data = self._read_data()
-
-        with open(file_path, "wb") as f:
-            f.write(bytes(read_data))
+        return bytes(output_data)
 
     def _set_write_mode(self, page_size: int):
         try:
@@ -84,25 +60,25 @@ class EepromProgrammerClient:
             raise EepromProgrammerClientError(
                 f"failed to set WRITE mode with: {ex}")
 
-    def _write_data(self, write_data: bytes, collect_write_performance: bool = False):
+    def write_data(self, input_data: bytes, collect_write_performance: bool = False):
         page_size = self._WRITE_PAGE_SIZE
-        pages_total = int(len(write_data) / page_size)
+        pages_total = int(len(input_data) / page_size)
         # last page
-        if len(write_data) > pages_total * page_size:
+        if len(input_data) > pages_total * page_size:
             pages_total += 1
 
         # set WRITE mode
         self._set_write_mode(page_size)
 
         # convert bytes to array
-        write_data = [b for b in write_data]
+        input_data = [b for b in input_data]
 
         if collect_write_performance:
             write_performance = []
 
         for page_no in range(pages_total):
             address = page_no * page_size
-            page_data = write_data[address:(address+page_size)]
+            page_data = input_data[address:(address+page_size)]
             self.json_rpc_client.send_request("write_page", [page_no, page_data])
             if collect_write_performance:
                 write_performance.extend(self.json_rpc_client.send_request("get_write_perf", None))
@@ -116,31 +92,6 @@ class EepromProgrammerClient:
                 f"failed to erase data, invalid pattern: {erase_pattern}")
 
         memory_size = self.chip_settings["memory_size"]
-        write_data = bytes([erase_pattern] * memory_size)
+        input_data = bytes([erase_pattern] * memory_size)
 
-        self._write_data(write_data, collect_write_performance)
-
-    def fetch_write_data_from_file(self, file_path: str) -> bytes:
-        if not file_path:
-            raise EepromProgrammerClientError(
-                "failed to write data, file_path is empty")
-
-        write_data = None
-        with open(file_path, "rb") as f:
-            write_data = bytes(f.read())
-        if not write_data:
-            raise EepromProgrammerClientError(
-                "failed to write data, source is empty")
-
-        memory_size = self.chip_settings["memory_size"]
-        if len(write_data) > memory_size:
-            raise EepromProgrammerClientError(
-                "failed to write data, source is bigger than the chip memory size")
-
-        if len(write_data) < memory_size:
-            print(f"incorrect write data size: {len(write_data)} (chip memory size is {memory_size})")
-
-        return write_data
-
-    def write_data_to_file(self, write_data: bytes, collect_write_performance: bool = False):
-        self._write_data(write_data, collect_write_performance)
+        self.write_data(input_data, collect_write_performance)

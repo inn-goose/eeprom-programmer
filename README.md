@@ -165,6 +165,16 @@ export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --erase-pattern CC
 ```
 
+#### verify
+
+```bash
+source venv/bin/activate
+export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
+
+# read data and verify it against the file
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --verify test_bin/4_echo_orbit_AT28C64_ff.bin
+```
+
 
 ## XGecu Programmer as a Reference
 
@@ -193,18 +203,44 @@ vimdiff tmp/dump_eeprom.hex tmp/dump_xgecu.hex
 
 ## Tests
 
-### W/R Cycle
+### prepare
 
 ```bash
 source venv/bin/activate
 export PYTHONPATH=./eeprom_programmer_cli/:$PYTHONPATH
+```
 
+### erase
+
+```bash
 # >> remove jumper wire
-./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --erase-pattern BB
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --erase --erase-pattern BB --collect-write-performance
 
-# >> add jumper wire
+# >> set jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
+
+xxd tmp/dump_eeprom.bin | less
+```
+
+### write and read
+
+```bash
+# >> remove jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --erase-pattern BB --collect-write-performance
+
+# >> set jumper wire
 ./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --read tmp/dump_eeprom.bin
 
 xxd tmp/dump_eeprom.bin > tmp/dump_eeprom.hex
-vimdiff test_bin/4_echo_orbit.hex tmp/4_echo_orbit.hex
+vimdiff tmp/dump_eeprom.hex tmp/4_echo_orbit.hex
+```
+
+### verify
+
+```bash
+# >> remove jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --write test_bin/4_echo_orbit.bin --collect-write-performance
+
+# >> set jumper wire
+./eeprom_programmer_cli/cli.py /dev/cu.usbmodem2101 -p AT28C64 --verify test_bin/4_echo_orbit_AT28C64_ff.bin
 ```
