@@ -75,7 +75,7 @@ public:
     if (buffer_size <= 0 || buffer_size > _MAX_PAGE_SIZE) {
       return;
     }
-    for (int i; i < buffer_size; i ++) {
+    for (int i; i < buffer_size; i++) {
       wait_time_for_page[i] = _write_op_wait_time_usec_for_page[i];
     }
   }
@@ -126,6 +126,9 @@ private:
   void _writeAddress(const uint32_t address);
   uint8_t _readData();
   void _writeData(const uint8_t data);
+
+  void _rdy_busy_polling(const unsigned long write_op_start_usec, const uint8_t data);
+  void _data_polling(const unsigned long write_op_start_usec, const uint8_t data);
 
   // wiring controller
   WiringController _wiring_controller;
@@ -481,68 +484,14 @@ ErrorCode EepromProgrammer::write_byte(const uint32_t address, const uint8_t dat
   // (5) wrtie disable (initiates the data flush)
   digitalWrite(_write_enable_pin, HIGH);
 
-  // (6) wait until successfull data propagation
+  // (6) polling
   const unsigned long write_op_start_usec = micros();
   _write_op_wait_time_usec = 0;
   _write_op_wait_cycles = -1;
   if (_rdy_busy_pin > 0) {
-    // wait until device switches to !BUSY state, if chip has the RDY/!BUSY pin
-    // Time to Device Busy (delta between WE and !BUSY) == 50 ms MAX (spec)
-    delayMicroseconds(1);  // arduino cannot delay in ns, only us
-    int currBusyState = digitalRead(_rdy_busy_pin);
-
-    // wait until !BUSY state switches to READY state (1 ms MAX)
-    // or just wait for the Write Cycle Time MAX
-    if (currBusyState == LOW) {
-      // device is in !BUSY state
-      // use the READY/!BUSY pin status to wait for the Write Cycle End
-      _write_op_wait_cycles = 0;
-      const unsigned int delay_usec = 100;
-
-      int prevBusyState = currBusyState;
-      while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
-        delayMicroseconds(delay_usec);
-        _write_op_wait_cycles += 1;
-
-        prevBusyState = currBusyState;
-        currBusyState = digitalRead(_rdy_busy_pin);
-        if (prevBusyState == LOW && currBusyState == HIGH) {  // rising edge
-          break;
-        }
-      }
-    } else {
-      // device not in !BUSY state
-      // use generic delay
-      delayMicroseconds(_WRITE_SUCCESS_WAITING_TIME_USEC);
-    }
-
+    _rdy_busy_polling(write_op_start_usec, data);
   } else {
-    // use !DATA polling, if chip doesn't have the RDY/!BUSY pin
-    // following the data poll waveforms, the data is read in a loop until the value matches the one written
-    // during the write procedure, the data pins remain in a metastable state.
-    _setDataBusMode(_DataBusMode::READ);
-
-    _write_op_wait_cycles = 0;
-    const unsigned int delay_usec = 50;
-
-    while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
-      delayMicroseconds(delay_usec);
-      _write_op_wait_cycles += 1;
-
-      // !DATA polling waveforms require to switch !CE and !OE for every attempt
-      digitalWrite(_chip_enable_pin, LOW);
-      digitalWrite(_output_enable_pin, LOW);
-      // !OE to Output Delay (delta between OE and data ready) == 100 ns MAX
-      delayMicroseconds(1);  // arduino cannot delay in ns, only us
-      uint8_t read_result = _readData();
-      digitalWrite(_output_enable_pin, HIGH);
-      digitalWrite(_chip_enable_pin, HIGH);
-      if (read_result == data) {
-        break;
-      }
-    }
-
-    _setDataBusMode(_DataBusMode::WRITE);
+    _data_polling(write_op_start_usec, data);
   }
   _write_op_wait_time_usec = micros() - write_op_start_usec;
 
@@ -597,6 +546,68 @@ void EepromProgrammer::_writeData(const uint8_t data) {
     digitalWrite(_data_bus_pins[i], b_data[i]);
   }
 }
+
+void EepromProgrammer::_rdy_busy_polling(const unsigned long write_op_start_usec, const uint8_t data) {
+  // wait until device switches to !BUSY state, if chip has the RDY/!BUSY pin
+  // Time to Device Busy (delta between WE and !BUSY) == 50 ms MAX (spec)
+  delayMicroseconds(1);  // arduino cannot delay in ns, only us
+  int currBusyState = digitalRead(_rdy_busy_pin);
+
+  // wait until !BUSY state switches to READY state (1 ms MAX)
+  // or just wait for the Write Cycle Time MAX
+  if (currBusyState == LOW) {
+    // device is in !BUSY state
+    // use the READY/!BUSY pin status to wait for the Write Cycle End
+    _write_op_wait_cycles = 0;
+    const unsigned int delay_usec = 100;
+
+    int prevBusyState = currBusyState;
+    while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
+      delayMicroseconds(delay_usec);
+      _write_op_wait_cycles += 1;
+
+      prevBusyState = currBusyState;
+      currBusyState = digitalRead(_rdy_busy_pin);
+      if (prevBusyState == LOW && currBusyState == HIGH) {  // rising edge
+        break;
+      }
+    }
+  } else {
+    // device not in !BUSY state
+    // use generic delay
+    delayMicroseconds(_WRITE_SUCCESS_WAITING_TIME_USEC);
+  }
+}
+
+void EepromProgrammer::_data_polling(const unsigned long write_op_start_usec, const uint8_t data) {
+  // use !DATA polling, if chip doesn't have the RDY/!BUSY pin
+  // following the data poll waveforms, the data is read in a loop until the value matches the one written
+  // during the write procedure, the data pins remain in a metastable state.
+  _setDataBusMode(_DataBusMode::READ);
+
+  _write_op_wait_cycles = 0;
+  const unsigned int delay_usec = 50;
+
+  while (write_op_start_usec + _WRITE_SUCCESS_WAITING_TIME_USEC > micros()) {
+    delayMicroseconds(delay_usec);
+    _write_op_wait_cycles += 1;
+
+    // !DATA polling waveforms require to switch !CE and !OE for every attempt
+    digitalWrite(_chip_enable_pin, LOW);
+    digitalWrite(_output_enable_pin, LOW);
+    // !OE to Output Delay (delta between OE and data ready) == 100 ns MAX
+    delayMicroseconds(1);  // arduino cannot delay in ns, only us
+    uint8_t read_result = _readData();
+    digitalWrite(_output_enable_pin, HIGH);
+    digitalWrite(_chip_enable_pin, HIGH);
+    if (read_result == data) {
+      break;
+    }
+  }
+
+  _setDataBusMode(_DataBusMode::WRITE);
+}
+
 
 }  // EepromProgrammerLibrary
 
